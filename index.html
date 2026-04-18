@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ETC Element · OSC</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #070910;
+  --bg2:     #0c0f16;
+  --surf:    #10141c;
+  --panel:   #151a24;
+  --panel2:  #1a2030;
+  --b1:      #222c3a;
+  --b2:      #2e3d52;
+  --b3:      #3d5068;
+  --amber:   #f0980a;
+  --amber2:  #c87808;
+  --amberg:  rgba(240,152,10,0.15);
+  --blue:    #3a9fe8;
+  --blueg:   rgba(58,159,232,0.14);
+  --green:   #36d468;
+  --greeng:  rgba(54,212,104,0.13);
+  --red:     #e84040;
+  --redg:    rgba(232,64,64,0.13);
+  --cyan:    #20d8cc;
+  --cyang:   rgba(32,216,204,0.13);
+  --purple:  #9b6ae8;
+  --purpleg: rgba(155,106,232,0.13);
+  --t1: #d8e4f0;
+  --t2: #6a84a0;
+  --t3: #384a5e;
+  --t4: #1e2a38;
+  --mono: 'Share Tech Mono', monospace;
+  --raj:  'Rajdhani', sans-serif;
+  --cnd:  'Barlow Condensed', sans-serif;
+  --r3: 3px; --r5: 5px; --r8: 8px;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { height:100%; }
+body {
+  height:100%;
+  background:var(--bg);
+  color:var(--t1);
+  font-family:var(--raj);
+  overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background:repeating-linear-gradient(0deg,transparent 0,transparent 2px,rgba(0,0,0,0.022) 2px,rgba(0,0,0,0.022) 4px);
+  pointer-events:none; z-index:9999;
+}
+button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
+
+/* ══ SETUP OVERLAY ══ */
+#setupOverlay {
+  position:fixed; inset:0; z-index:8000;
+  background:rgba(7,9,16,0.97);
+  display:flex; align-items:center; justify-content:center;
+  padding:20px;
+}
+.sbox {
+  background:var(--panel);
+  border:1px solid var(--b2);
+  border-radius:12px;
+  width:100%; max-width:400px;
+  box-shadow:0 24px 80px rgba(0,0,0,0.7);
+  overflow:hidden;
+}
+.shead {
+  background:var(--surf);
+  border-bottom:1px solid var(--b1);
+  padding:18px 22px 14px;
+}
+.slogo { font-family:var(--raj); font-weight:700; font-size:20px; letter-spacing:5px; color:var(--amber); text-shadow:0 0 20px var(--amberg); }
+.ssubt { font-family:var(--cnd); font-size:11px; letter-spacing:3px; color:var(--t2); margin-top:2px; }
+
+.ssteps {
+  display:flex;
+  background:var(--bg2);
+  border-bottom:1px solid var(--b1);
+}
+.stab {
+  flex:1; padding:10px 4px; text-align:center;
+  font-family:var(--cnd); font-size:9px; font-weight:700; letter-spacing:2px;
+  color:var(--t3); border-bottom:2px solid transparent; transition:all 0.2s;
+}
+.stab .sn { display:block; font-family:var(--mono); font-size:16px; font-weight:700; margin-bottom:1px; }
+.stab.active { color:var(--amber); border-bottom-color:var(--amber); }
+.stab.done   { color:var(--green); }
+
+.sbody { padding:22px; }
+.spanel { display:none; }
+.spanel.active { display:block; }
+
+.stitle { font-family:var(--cnd); font-weight:700; font-size:18px; letter-spacing:2px; color:var(--t1); margin-bottom:4px; }
+.sdesc  { font-family:var(--cnd); font-size:12px; color:var(--t2); line-height:1.55; margin-bottom:18px; }
+
+.sfield { margin-bottom:13px; }
+.sfield label { display:block; font-family:var(--cnd); font-size:10px; font-weight:700; letter-spacing:2px; color:var(--t2); margin-bottom:5px; }
+.sinput {
+  width:100%; background:var(--bg2); border:1px solid var(--b2); border-radius:var(--r5);
+  color:var(--amber); font-family:var(--mono); font-size:16px; padding:11px 13px;
+  outline:none; -webkit-appearance:none; transition:border-color 0.15s,box-shadow 0.15s;
+}
+.sinput:focus { border-color:var(--amber); box-shadow:0 0 0 2px var(--amberg); }
+.sinput::placeholder { color:var(--t3); }
+
+.sstatus {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 12px; border-radius:var(--r5);
+  font-family:var(--mono); font-size:11px;
+  margin-bottom:14px;
+  background:var(--bg2); border:1px solid var(--b1); color:var(--t3);
+  transition:all 0.25s; min-height:38px;
+}
+.sstatus.connecting { color:var(--amber); border-color:var(--amber2); background:var(--amberg); }
+.sstatus.ok  { color:var(--green); border-color:var(--green); background:var(--greeng); }
+.sstatus.err { color:var(--red);   border-color:var(--red);   background:var(--redg); }
+.sdot { width:8px; height:8px; border-radius:50%; background:currentColor; flex-shrink:0; }
+.sstatus.connecting .sdot { animation:blink 0.8s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
+
+.sacts { display:flex; gap:8px; justify-content:flex-end; }
+.btnpri {
+  background:var(--amber); color:#000;
+  font-family:var(--cnd); font-weight:700; font-size:12px; letter-spacing:2px;
+  padding:11px 22px; border:none; border-radius:var(--r5); cursor:pointer; transition:all 0.1s;
+}
+.btnpri:hover { background:#ffa820; }
+.btnpri:active { transform:scale(0.97); }
+.btnpri:disabled { background:var(--b2); color:var(--t3); cursor:not-allowed; }
+.btnghost {
+  background:transparent; color:var(--t2);
+  font-family:var(--cnd); font-weight:600; font-size:12px; letter-spacing:1px;
+  padding:11px 16px; border:1px solid var(--b2); border-radius:var(--r5); cursor:pointer; transition:all 0.1s;
+}
+.btnghost:hover { border-color:var(--b3); color:var(--t1); }
+
+/* ══ APP SHELL ══ */
+#appShell { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+
+.hdr {
+  display:flex; align-items:center; height:44px; padding:0 12px;
+  background:var(--surf); border-bottom:1px solid var(--b1); gap:8px; flex-shrink:0;
+}
+.hdr-logo { font-family:var(--raj); font-weight:700; font-size:15px; letter-spacing:5px; color:var(--amber); flex-shrink:0; }
+.hdr-sep  { width:1px; height:18px; background:var(--b2); flex-shrink:0; }
+.hdr-mdl  { font-family:var(--cnd); font-size:10px; font-weight:600; letter-spacing:3px; color:var(--t3); flex-shrink:0; }
+.hdr-cue  { flex:1; font-family:var(--mono); font-size:11px; color:var(--amber); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hdr-conn {
+  display:flex; align-items:center; gap:5px; flex-shrink:0;
+  cursor:pointer; padding:4px 8px; border-radius:var(--r3); border:1px solid var(--b1);
+}
+.cdot { width:7px; height:7px; border-radius:50%; background:var(--t3); transition:all 0.3s; flex-shrink:0; }
+.cdot.on  { background:var(--green); box-shadow:0 0 6px var(--green); animation:blink 2.5s infinite; }
+.cdot.tx  { background:var(--cyan);  box-shadow:0 0 8px var(--cyan); animation:none; }
+.cdot.err { background:var(--red); animation:none; }
+.clbl { font-family:var(--mono); font-size:9px; color:var(--t2); }
+
+.tabs {
+  display:flex; background:var(--surf); border-bottom:1px solid var(--b1); flex-shrink:0;
+  overflow-x:auto; scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar { display:none; }
+.tab {
+  flex:1; min-width:65px; padding:9px 6px 7px;
+  font-family:var(--cnd); font-size:10px; font-weight:700; letter-spacing:2px;
+  color:var(--t3); border:none; background:none; cursor:pointer;
+  border-bottom:2px solid transparent; transition:all 0.15s; white-space:nowrap;
+}
+.tab:hover { color:var(--t2); }
+.tab.active { color:var(--amber); border-bottom-color:var(--amber); }
+
+.pages { flex:1; overflow:hidden; position:relative; }
+.page {
+  position:absolute; inset:0;
+  overflow-y:auto; overflow-x:hidden;
+  display:none; flex-direction:column; gap:8px; padding:10px;
+  -webkit-overflow-scrolling:touch;
+}
+.page.active { display:flex; }
+.page::-webkit-scrollbar { width:3px; }
+.page::-webkit-scrollbar-thumb { background:var(--b2); border-radius:2px; }
+
+.card { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r8); padding:12px; flex-shrink:0; }
+.ctitle { font-family:var(--cnd); font-size:9px; font-weight:700; letter-spacing:3px; color:var(--t3); text-transform:uppercase; margin-bottom:10px; }
+
+/* ══ BOTTOM BAR ══ */
+.bbar {
+  display:flex; align-items:center; gap:6px;
+  padding:8px 10px; background:var(--surf); border-top:1px solid var(--b1); flex-shrink:0;
+}
+.btn-go {
+  background:linear-gradient(160deg,#1c6030,#0e4020);
+  border:1px solid var(--green); color:#fff;
+  font-family:var(--cnd); font-weight:700; font-size:13px; letter-spacing:3px;
+  padding:10px 20px; border-radius:var(--r5); cursor:pointer; transition:all 0.1s;
+  box-shadow:0 0 10px rgba(54,212,104,0.1); touch-action:manipulation;
+}
+.btn-go:active,.btn-go.flash { background:linear-gradient(160deg,#26b858,#189040); box-shadow:0 0 20px rgba(54,212,104,0.45); transform:scale(0.97); }
+.btn-stop {
+  background:linear-gradient(160deg,#581212,#380a0a);
+  border:1px solid var(--red); color:#fff;
+  font-family:var(--cnd); font-weight:700; font-size:11px; letter-spacing:2px;
+  padding:10px 14px; border-radius:var(--r5); cursor:pointer; transition:all 0.1s; touch-action:manipulation;
+}
+.btn-stop:active { background:linear-gradient(160deg,#c02828,#9a1818); transform:scale(0.97); }
+.btn-back {
+  background:var(--panel2); border:1px solid var(--b2); color:var(--blue);
+  font-family:var(--cnd); font-weight:700; font-size:12px; letter-spacing:1px;
+  padding:10px 14px; border-radius:var(--r5); cursor:pointer; transition:all 0.1s; touch-action:manipulation;
+}
+.btn-back:active { background:var(--blueg); transform:scale(0.97); }
+.bbar-cue { font-family:var(--mono); font-size:11px; color:var(--amber); margin-left:auto; white-space:nowrap; }
+
+/* ══ CHANNELS PAGE ══ */
+.cue-nums { display:flex; gap:4px; flex-wrap:wrap; }
+.btn-cue {
+  background:var(--panel2); border:1px solid var(--b1); color:var(--t3);
+  font-family:var(--mono); font-size:11px; padding:7px 10px; border-radius:var(--r3);
+  cursor:pointer; transition:all 0.1s; min-width:40px; text-align:center; touch-action:manipulation;
+}
+.btn-cue.active { border-color:var(--amber); color:var(--amber); background:var(--amberg); }
+.btn-cue:active { transform:scale(0.93); }
+
+.bank-btns { display:flex; gap:4px; }
+.bkbtn {
+  background:var(--panel2); border:1px solid var(--b1); color:var(--t2);
+  font-family:var(--cnd); font-size:10px; font-weight:600; letter-spacing:1px;
+  padding:5px 10px; border-radius:var(--r3); cursor:pointer; transition:all 0.1s; touch-action:manipulation;
+}
+.bkbtn.active { border-color:var(--amber); color:var(--amber); background:var(--amberg); }
+.bkbtn:active { transform:scale(0.95); }
+
+.fader-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(60px,1fr)); gap:6px; }
+
+.ch-strip {
+  background:var(--panel2); border:1px solid var(--b1); border-radius:var(--r5);
+  padding:7px 5px 6px; display:flex; flex-direction:column; align-items:center; gap:4px;
+  user-select:none;
+}
+.ch-num  { font-family:var(--mono); font-size:9px; color:var(--t3); }
+.ch-name { font-family:var(--cnd); font-size:9px; font-weight:600; letter-spacing:0.5px; color:var(--t2); text-align:center; line-height:1.1; min-height:17px; }
+.ch-pct  { font-family:var(--mono); font-size:12px; color:var(--amber); min-height:14px; }
+
+.vfader { position:relative; width:30px; height:100px; display:flex; align-items:center; justify-content:center; touch-action:none; cursor:ns-resize; }
+.vf-track { position:absolute; width:5px; height:100%; background:var(--bg2); border:1px solid var(--b1); border-radius:3px; overflow:hidden; }
+.vf-fill  { position:absolute; bottom:0; width:100%; background:linear-gradient(to top,var(--amber),var(--amber2)); border-radius:3px; }
+.vf-knob  {
+  position:absolute; width:26px; height:16px;
+  background:linear-gradient(160deg,#28303e,#18202e);
+  border:1px solid var(--b2); border-radius:3px; z-index:2;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 2px 5px rgba(0,0,0,0.5); cursor:ns-resize; touch-action:none; transition:border-color 0.1s;
+}
+.vf-knob.act { border-color:var(--amber); }
+.vf-kline { width:13px; height:1px; background:var(--b3); border-radius:1px; }
+
+.vu-row { display:flex; gap:1px; height:5px; align-items:flex-end; }
+.vu-seg { flex:1; border-radius:1px; background:var(--b1); height:3px; transition:background 0.06s,height 0.06s; }
+.vu-seg.g { background:var(--green); height:5px; }
+.vu-seg.a { background:var(--amber); height:5px; }
+.vu-seg.r { background:var(--red);   height:5px; }
+
+.ch-cdot { width:12px; height:12px; border-radius:50%; border:1px solid var(--b2); cursor:pointer; touch-action:manipulation; }
+.ch-cdot:active { transform:scale(1.3); }
+
+.btn-flash {
+  width:100%; background:var(--panel); border:1px solid var(--b1); color:var(--t3);
+  font-family:var(--cnd); font-size:8px; font-weight:700; letter-spacing:1px;
+  padding:4px 0; border-radius:var(--r3); cursor:pointer; transition:all 0.08s; touch-action:manipulation;
+}
+.btn-flash:active,.btn-flash.on { background:var(--amber); color:#000; border-color:var(--amber); }
+
+/* GM */
+.gm-wrap { display:flex; gap:10px; align-items:flex-end; }
+.gm-strip {
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  background:rgba(232,64,64,0.05); border:1px solid rgba(232,64,64,0.22);
+  border-radius:var(--r5); padding:10px 8px; min-width:58px; flex-shrink:0;
+}
+.gm-lbl { font-family:var(--cnd); font-size:8px; font-weight:700; letter-spacing:3px; color:var(--red); }
+.gm-fader { position:relative; width:34px; height:130px; display:flex; align-items:center; justify-content:center; touch-action:none; cursor:ns-resize; }
+.gm-track { position:absolute; width:6px; height:100%; background:var(--bg2); border:1px solid var(--b2); border-radius:3px; overflow:hidden; }
+.gm-fill  { position:absolute; bottom:0; width:100%; background:linear-gradient(to top,var(--red),#c02828); border-radius:3px; }
+.gm-knob  {
+  position:absolute; width:30px; height:18px;
+  background:linear-gradient(160deg,#381212,#240c0c);
+  border:1.5px solid var(--red); border-radius:3px; z-index:2;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 10px rgba(232,64,64,0.18); cursor:ns-resize; touch-action:none;
+}
+.gm-knob.act { box-shadow:0 0 16px rgba(232,64,64,0.45); }
+.gm-pct { font-family:var(--mono); font-size:11px; color:var(--red); }
+
+/* Quick actions */
+.qa-row { display:flex; gap:5px; flex-wrap:wrap; }
+.btn-qa {
+  background:var(--panel2); border:1px solid var(--b2); color:var(--t2);
+  font-family:var(--cnd); font-size:11px; font-weight:600; letter-spacing:1px;
+  padding:8px 12px; border-radius:var(--r3); cursor:pointer; transition:all 0.1s; touch-action:manipulation;
+}
+.btn-qa:active { transform:scale(0.95); }
+.btn-qa.gr  { color:var(--green); } .btn-qa.gr:active  { background:var(--greeng); border-color:var(--green); }
+.btn-qa.bl  { color:var(--blue); }  .btn-qa.bl:active  { background:var(--blueg);  border-color:var(--blue); }
+.btn-qa.rd  { color:var(--red); border-color:rgba(232,64,64,0.28); }
+.btn-qa.rd:active,.btn-qa.rd.on { background:var(--redg); border-color:var(--red); color:var(--red); }
+
+/* Macros */
+.macro-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(68px,1fr)); gap:5px; }
+.btn-mac {
+  background:var(--panel2); border:1px solid var(--b1); color:var(--t2);
+  font-family:var(--cnd); font-size:10px; font-weight:600; letter-spacing:1px;
+  padding:8px 4px; border-radius:var(--r3); cursor:pointer; transition:all 0.1s; touch-action:manipulation; text-align:center;
+}
+.btn-mac:active { transform:scale(0.95); }
+.btn-mac.on { border-color:var(--purple); color:var(--purple); background:var(--purpleg); }
+
+/* ══ MOVERS PAGE ══ */
+.mover-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:8px; }
+.mover-card { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r8); padding:12px; display:flex; flex-direction:column; gap:10px; }
+.mover-card.sel { border-color:var(--cyan); }
+.mover-hdr { display:flex; align-items:flex-start; justify-content:space-between; }
+.mover-name { font-family:var(--cnd); font-weight:700; font-size:15px; letter-spacing:1.5px; }
+.mover-mdl  { font-family:var(--mono); font-size:9px; color:var(--t3); margin-top:2px; }
+.badge { font-family:var(--cnd); font-size:9px; font-weight:700; letter-spacing:2px; padding:3px 8px; border-radius:20px; }
+.badge-s { background:var(--amberg); border:1px solid var(--amber); color:var(--amber); }
+.badge-w { background:var(--blueg);  border:1px solid var(--blue);  color:var(--blue); }
+
+.xypad-row { display:flex; gap:10px; align-items:flex-start; }
+.xypad {
+  position:relative; width:110px; height:110px; flex-shrink:0;
+  background:var(--bg2); border:1px solid var(--b2); border-radius:var(--r5);
+  overflow:hidden; touch-action:none; cursor:crosshair;
+}
+.xypad-grid {
+  position:absolute; inset:0;
+  background:linear-gradient(rgba(58,159,232,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(58,159,232,0.06) 1px,transparent 1px);
+  background-size:27.5px 27.5px;
+}
+.xypad-ch { position:absolute; background:rgba(58,159,232,0.1); }
+.xypad-ch.h { height:1px; width:100%; top:50%; }
+.xypad-ch.v { width:1px;  height:100%; left:50%; }
+.xypad-dot {
+  position:absolute; width:16px; height:16px; border-radius:50%;
+  background:var(--cyan); box-shadow:0 0 12px rgba(32,216,204,0.7),0 0 24px rgba(32,216,204,0.25);
+  transform:translate(-50%,-50%); pointer-events:none;
+}
+.xy-readouts { display:flex; flex-direction:column; justify-content:center; gap:8px; }
+.xy-val { font-family:var(--mono); font-size:10px; color:var(--blue); display:flex; flex-direction:column; gap:1px; }
+.xy-val span:first-child { font-size:8px; color:var(--t3); }
+
+/* ══ ENCODER ══ */
+.enc-row { display:flex; gap:6px; flex-wrap:wrap; align-items:flex-start; }
+.enc-group { display:flex; flex-direction:column; align-items:center; gap:3px; }
+.enc-wrap {
+  touch-action:none; user-select:none; -webkit-user-select:none;
+  -webkit-touch-callout:none; cursor:ns-resize; display:block;
+}
+.enc-wrap svg { display:block; overflow:visible; }
+.enc-val { font-family:var(--mono); font-size:9px; text-align:center; min-width:34px; }
+.enc-lbl { font-family:var(--cnd); font-size:8px; font-weight:700; letter-spacing:1.5px; color:var(--t3); text-align:center; }
+
+/* Color + Gobo */
+.color-row { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+.csw { width:24px; height:24px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:all 0.1s; flex-shrink:0; touch-action:manipulation; }
+.csw:active { transform:scale(1.2); }
+.csw.active { border-color:#fff; box-shadow:0 0 8px rgba(255,255,255,0.45); }
+.clrn { font-family:var(--mono); font-size:9px; color:var(--t3); margin-left:4px; }
+
+.gobo-row { display:flex; gap:4px; flex-wrap:wrap; }
+.btn-gobo {
+  min-width:34px; padding:5px 4px; background:var(--panel2); border:1px solid var(--b1);
+  border-radius:var(--r3); cursor:pointer; font-family:var(--mono); font-size:8px; color:var(--t3);
+  transition:all 0.1s; text-align:center; touch-action:manipulation;
+}
+.btn-gobo:active { transform:scale(0.9); }
+.btn-gobo.active { border-color:var(--purple); color:var(--purple); background:var(--purpleg); }
+
+/* ══ CUES PAGE ══ */
+.cue-list { display:flex; flex-direction:column; gap:4px; }
+.cue-row {
+  display:flex; align-items:center; gap:8px; padding:10px 12px;
+  background:var(--panel2); border:1px solid var(--b1); border-radius:var(--r5);
+  cursor:pointer; transition:all 0.1s; touch-action:manipulation;
+}
+.cue-row.active { border-color:var(--green); background:var(--greeng); }
+.cue-n    { font-family:var(--mono); font-size:13px; color:var(--amber); min-width:44px; }
+.cue-name { font-family:var(--raj); font-size:14px; font-weight:500; flex:1; }
+.cue-t    { font-family:var(--mono); font-size:10px; color:var(--t3); }
+.cue-st   { font-family:var(--cnd); font-size:9px; letter-spacing:2px; min-width:50px; text-align:right; }
+.btn-cue-go {
+  background:var(--panel); border:1px solid var(--b2); color:var(--green);
+  font-family:var(--cnd); font-size:10px; font-weight:700; letter-spacing:1px;
+  padding:5px 10px; border-radius:var(--r3); cursor:pointer; transition:all 0.1s; touch-action:manipulation;
+}
+.btn-cue-go:active { background:var(--greeng); transform:scale(0.95); }
+
+/* ══ SETTINGS PAGE ══ */
+.settings-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:8px; }
+.frow { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.flbl { font-family:var(--cnd); font-size:10px; font-weight:700; letter-spacing:1.5px; color:var(--t2); min-width:88px; }
+.finput {
+  flex:1; background:var(--bg2); border:1px solid var(--b2); border-radius:var(--r3);
+  color:var(--amber); font-family:var(--mono); font-size:13px; padding:7px 10px; outline:none;
+  -webkit-appearance:none; transition:border-color 0.15s;
+}
+.finput:focus { border-color:var(--amber); }
+
+.osc-log {
+  height:130px; overflow-y:auto; background:var(--bg2); border:1px solid var(--b1);
+  border-radius:var(--r5); padding:6px 8px; display:flex; flex-direction:column-reverse; gap:1px;
+}
+.osc-log::-webkit-scrollbar { width:3px; }
+.osc-log::-webkit-scrollbar-thumb { background:var(--b2); }
+.ll { display:flex; gap:6px; padding:1px 0; font-family:var(--mono); font-size:9px; }
+.ll-ts   { color:var(--t3); min-width:44px; }
+.ll-dir  { min-width:14px; }
+.ll-dir.out { color:var(--cyan); }
+.ll-dir.in  { color:var(--green); }
+.ll-dir.err { color:var(--red); }
+.ll-path { color:var(--amber); flex:1; }
+.ll-v    { color:var(--t2); }
+
+.osc-ref-row {
+  display:flex; gap:6px; padding:5px 8px; background:var(--panel2);
+  border:1px solid var(--b1); border-radius:var(--r3); margin-bottom:3px; font-family:var(--mono); font-size:9px;
+}
+.orp { color:var(--cyan); flex:1; }
+.ort { color:var(--t3); min-width:20px; }
+.ord { color:var(--t2); font-family:var(--cnd); font-size:9px; }
+
+.toggle { position:relative; width:38px; height:20px; flex-shrink:0; }
+.toggle input { opacity:0; width:0; height:0; }
+.tsl { position:absolute; inset:0; background:var(--b1); border-radius:10px; cursor:pointer; transition:all 0.2s; border:1px solid var(--b2); }
+.tsl::before { content:''; position:absolute; width:14px; height:14px; left:2px; top:2px; background:var(--t3); border-radius:50%; transition:all 0.2s; }
+.toggle input:checked + .tsl { background:var(--green-dim,#0e5a28); border-color:var(--green); }
+.toggle input:checked + .tsl::before { transform:translateX(18px); background:var(--green); }
+
+/* ══ RESPONSIVE ══ */
+@media (min-width:600px) {
+  .vfader { height:120px; }
+  .fader-grid { grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); }
+  .xypad { width:130px; height:130px; }
+  .gm-fader { height:150px; }
+}
+@media (max-width:400px) {
+  .hdr-mdl { display:none; }
+  .vfader { height:80px; }
+  .fader-grid { grid-template-columns:repeat(auto-fill,minmax(52px,1fr)); }
+  .mover-grid { grid-template-columns:1fr; }
+  .settings-grid { grid-template-columns:1fr; }
+  .gm-fader { height:110px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ SETUP WIZARD ══════════ -->
+<div id="setupOverlay">
+  <div class="sbox">
+    <div class="shead">
+      <div class="slogo">ETC</div>
+      <div class="ssubt">ELEMENT · OSC CONTROLLER</div>
+    </div>
+    <div class="ssteps">
+      <div class="stab active" id="stab-0"><span class="sn">1</span>BRIDGE</div>
+      <div class="stab" id="stab-1"><span class="sn">2</span>CONSOLE</div>
+      <div class="stab" id="stab-2"><span class="sn">3</span>READY</div>
+    </div>
+    <div class="sbody">
+
+      <!-- Step 1 -->
+      <div class="spanel active" id="sp-0">
+        <div class="stitle">WebSocket Bridge</div>
+        <div class="sdesc">Enter your OSC bridge endpoint as an IP or domain. Cloudflare Tunnel domains are supported (for example: bridge.example.com or https://bridge.example.com/ws).</div>
+        <div class="sfield">
+          <label>Bridge Host / Domain / URL</label>
+          <input class="sinput" id="s-wsHost" type="text" inputmode="url" placeholder="bridge.example.com or 192.168.1.50" autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+        <div class="sfield">
+          <label>Bridge Port (optional)</label>
+          <input class="sinput" id="s-wsPort" type="number" inputmode="numeric" placeholder="8080">
+        </div>
+        <div class="sstatus" id="s0st"><div class="sdot"></div><span id="s0msg">Ready to connect</span></div>
+        <div class="sacts">
+          <button class="btnpri" id="s0btn" onclick="setupConnect()">CONNECT</button>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="spanel" id="sp-1">
+        <div class="stitle">ETC Console</div>
+        <div class="sdesc">Bridge connected ✓ — now enter your ETC Eos / Element console's network details.</div>
+        <div class="sfield">
+          <label>Console IP Address</label>
+          <input class="sinput" id="s-oscHost" type="text" inputmode="url" placeholder="192.168.1.100" autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+        <div class="sfield">
+          <label>OSC UDP Port</label>
+          <input class="sinput" id="s-oscPort" type="number" inputmode="numeric" placeholder="3032" value="3032">
+        </div>
+        <div class="sfield" style="display:flex; gap:12px; align-items:flex-end;">
+          <div style="flex:1;">
+            <label>OSC User #</label>
+            <input class="sinput" id="s-oscUser" type="number" inputmode="numeric" placeholder="1" value="1">
+          </div>
+        </div>
+        <div class="sstatus ok" id="s1st" style="margin-bottom:14px;"><div class="sdot"></div><span>Bridge connected — fill in console details</span></div>
+        <div class="sacts">
+          <button class="btnghost" onclick="setupBack()">BACK</button>
+          <button class="btnpri" onclick="setupFinish()">LAUNCH →</button>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="spanel" id="sp-2">
+        <div class="stitle" style="color:var(--green);">Ready</div>
+        <div class="sdesc">All set. You can update connection settings anytime from the Settings tab.</div>
+        <div style="background:var(--bg2); border:1px solid var(--b1); border-radius:var(--r5); padding:14px; margin-bottom:18px;">
+          <div style="font-family:var(--mono); font-size:10px; color:var(--t2); line-height:2.2;">
+            <span style="color:var(--t3); display:inline-block; min-width:80px;">BRIDGE</span> <span id="done-b" style="color:var(--green);">—</span><br>
+            <span style="color:var(--t3); display:inline-block; min-width:80px;">CONSOLE</span> <span id="done-c" style="color:var(--amber);">—</span><br>
+            <span style="color:var(--t3); display:inline-block; min-width:80px;">OSC PORT</span> <span id="done-p" style="color:var(--amber);">—</span>
+          </div>
+        </div>
+        <div class="sacts" style="justify-content:center;">
+          <button class="btnpri" onclick="launchApp()" style="padding:13px 36px; font-size:14px;">OPEN CONTROLLER</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ APP SHELL ══════════ -->
+<div id="appShell" style="display:none;">
+  <header class="hdr">
+    <div class="hdr-logo">ETC</div>
+    <div class="hdr-sep"></div>
+    <div class="hdr-mdl">ELEMENT</div>
+    <div class="hdr-cue" id="hdrCue">CUE 1.0 — READY</div>
+    <div class="hdr-conn" onclick="showTab('settings',document.querySelectorAll('.tab')[3])">
+      <div class="cdot on" id="cdot"></div>
+      <span class="clbl" id="clbl">LIVE</span>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" onclick="showTab('channels',this)">Channels</button>
+    <button class="tab" onclick="showTab('movers',this)">Movers</button>
+    <button class="tab" onclick="showTab('cues',this)">Cues</button>
+    <button class="tab" onclick="showTab('settings',this)">Settings</button>
+  </nav>
+
+  <div class="pages">
+
+    <!-- CHANNELS -->
+    <div class="page active" id="page-channels">
+      <div class="card">
+        <div class="ctitle">Cue Playback</div>
+        <div class="cue-nums" id="cueNums"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div class="ctitle" style="margin:0;">Channel Faders</div>
+          <div class="bank-btns">
+            <button class="bkbtn active" id="bk0" onclick="changeBank(0,this)">1–12</button>
+            <button class="bkbtn" id="bk12" onclick="changeBank(12,this)">13–24</button>
+            <button class="bkbtn" id="bk24" onclick="changeBank(24,this)">25–36</button>
+          </div>
+        </div>
+        <div class="fader-grid" id="faderGrid"></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Masters &amp; Controls</div>
+        <div class="gm-wrap">
+          <div class="gm-strip">
+            <div class="gm-lbl">G·M</div>
+            <div class="gm-fader" id="gmFader">
+              <div class="gm-track"><div class="gm-fill" id="gmFill" style="height:100%"></div></div>
+              <div class="gm-knob" id="gmKnob"><div style="width:15px;height:1px;background:rgba(232,64,64,0.4);border-radius:1px;"></div></div>
+            </div>
+            <div class="gm-pct" id="gmPct">100%</div>
+          </div>
+          <div style="flex:1; display:flex; flex-direction:column; gap:10px;">
+            <div>
+              <div class="ctitle" style="margin-bottom:6px;">Quick Actions</div>
+              <div class="qa-row">
+                <button class="btn-qa gr" onclick="sendOSC('/eos/softkey/1',1)">LIVE</button>
+                <button class="btn-qa" onclick="sendOSC('/eos/softkey/2',1)">BLIND</button>
+                <button class="btn-qa bl" onclick="sendOSC('/eos/out',1)">STAGE</button>
+                <button class="btn-qa bl" onclick="homeAll()">HOME</button>
+                <button class="btn-qa rd" id="btnBo" onclick="toggleBlackout()">B/OUT</button>
+              </div>
+            </div>
+            <div>
+              <div class="ctitle" style="margin-bottom:6px;">Macros</div>
+              <div class="macro-grid" id="macroGrid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOVERS -->
+    <div class="page" id="page-movers">
+      <div class="card" style="padding:9px 12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="ctitle" style="margin:0;">Moving Fixtures</div>
+          <div style="display:flex; gap:5px;">
+            <button class="btn-qa" onclick="selectAllMovers()">SEL ALL</button>
+            <button class="btn-qa bl" onclick="homeAllMovers()">HOME ALL</button>
+          </div>
+        </div>
+      </div>
+      <div class="mover-grid" id="moverGrid"></div>
+    </div>
+
+    <!-- CUES -->
+    <div class="page" id="page-cues">
+      <div class="card" style="padding:9px 12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="ctitle" style="margin:0;">Cue List</div>
+          <div style="display:flex; gap:5px;">
+            <button class="btn-qa bl" onclick="sendOSC('/eos/newcue',1)">NEW CUE</button>
+            <button class="btn-qa" onclick="sendOSC('/eos/record',1)">RECORD</button>
+          </div>
+        </div>
+      </div>
+      <div class="cue-list" id="cueList"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="settings-grid">
+        <div class="card">
+          <div class="ctitle">OSC Connection</div>
+          <div class="frow"><span class="flbl">WS Host/URL</span><input class="finput" id="wsHost" type="text"></div>
+          <div class="frow"><span class="flbl">WS Port</span><input class="finput" id="wsPort" type="number" placeholder="optional"></div>
+          <div class="frow"><span class="flbl">Console IP</span><input class="finput" id="oscHost" type="text"></div>
+          <div class="frow"><span class="flbl">OSC Port</span><input class="finput" id="oscPort" type="number"></div>
+          <div style="display:flex; gap:6px; margin-top:4px;">
+            <button class="btn-qa gr" onclick="reconnectOSC()">RECONNECT</button>
+            <button class="btn-qa rd" onclick="disconnectOSC()">DISCONNECT</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ctitle">Fixture Config</div>
+          <div class="frow"><span class="flbl">Channels</span><input class="finput" id="cfgChan" type="number" value="24" style="width:60px;flex:none;" onchange="buildFaders()"></div>
+          <div class="frow"><span class="flbl">Movers</span><input class="finput" id="cfgMovers" type="number" value="6" style="width:60px;flex:none;" onchange="rebuildMovers()"></div>
+          <div class="frow"><span class="flbl">Cues</span><input class="finput" id="cfgCues" type="number" value="20" style="width:60px;flex:none;" onchange="buildCueList()"></div>
+          <div class="frow"><span class="flbl">Send Live</span><label class="toggle"><input type="checkbox" id="cfgLive" checked><span class="tsl"></span></label></div>
+        </div>
+        <div class="card">
+          <div class="ctitle">OSC Path Reference</div>
+          <div id="oscRef"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div class="ctitle" style="margin:0;">OSC Activity</div>
+          <button class="btn-qa" onclick="clearLog()">CLEAR</button>
+        </div>
+        <div class="osc-log" id="oscLog"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bbar">
+    <button class="btn-go"   id="btnGoB" onclick="triggerGo()">▶ GO</button>
+    <button class="btn-stop" onclick="triggerStop()">■ STOP</button>
+    <button class="btn-back" onclick="triggerBack()">◀</button>
+    <div class="bbar-cue" id="bbarCue">Q 1</div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+let ws = null, oscConn = false, curCue = 1, bankOff = 0, boOn = false, gmVal = 100;
+const chanVals = new Array(48).fill(0);
+const chanClrs = new Array(48).fill(0);
+const macroOn  = new Array(12).fill(false);
+const moverState = [];
+
+const CHAN_NAMES = ['SPOT 1','SPOT 2','SPOT 3','WASH L','WASH R','WASH C','FRONT L','FRONT R','BACK L','BACK R','CYCO','SPEC 1','SPEC 2','SPEC 3','FOOT L','FOOT R','SHIN L','SHIN R','FLOOR 1','FLOOR 2','STROBE','FOG','SPOT 4','SPOT 5','CH 25','CH 26','CH 27','CH 28','CH 29','CH 30','CH 31','CH 32','CH 33','CH 34','CH 35','CH 36'];
+const MACRO_LABELS = ['ACT 1','ACT 2','CHASE','STROB','SNAP','FADE','BLK IN','BLK OUT','RESET','HOUSE','WORK','PRESET'];
+const MOVER_NAMES  = ['SPOT A','SPOT B','SPOT C','SPOT D','WASH A','WASH B','SPOT E','SPOT F'];
+const MOVER_MODELS = ['MAC Viper','Robe BMFL','Mac Ultra','Claypaky Xtylos','GLP JDC1','Robe PAINTE','ETC Lustr+','Chroma-Q'];
+const MOVER_TYPES  = ['SPOT','SPOT','SPOT','SPOT','WASH','WASH','SPOT','SPOT'];
+const GOBO_LABELS  = ['OPEN','G1','G2','G3','G4','SPLIT','PRISM','FROST'];
+const COLOR_PRESETS = [{name:'Open',hex:'#fff8e0'},{name:'CTB',hex:'#a0c8ff'},{name:'R68',hex:'#e84040'},{name:'R79',hex:'#ff9020'},{name:'R21',hex:'#4080ff'},{name:'G345',hex:'#60e070'},{name:'L201',hex:'#ffe060'},{name:'UV',hex:'#8020ff'}];
+const OSC_PATHS = [{path:'/eos/go',type:'f',desc:'Trigger GO'},{path:'/eos/stop',type:'f',desc:'Stop'},{path:'/eos/back',type:'f',desc:'Back'},{path:'/eos/cue/{n}/fire',type:'f',desc:'Fire cue N'},{path:'/eos/chan/{n}/param/intens',type:'f',desc:'Intensity 0-1'},{path:'/eos/chan/{n}/param/pan',type:'f',desc:'Pan 0-1'},{path:'/eos/chan/{n}/param/tilt',type:'f',desc:'Tilt 0-1'},{path:'/eos/chan/{n}/param/color/hue',type:'f',desc:'Hue 0-1'},{path:'/eos/chan/{n}/param/gobo',type:'i',desc:'Gobo index'},{path:'/eos/grandmaster',type:'f',desc:'Grand master'},{path:'/eos/blackout',type:'i',desc:'Blackout 0/1'},{path:'/eos/macro/{n}/fire',type:'f',desc:'Fire macro N'}];
+const CUE_NAMES = ['Preshow','Act 1 Open','Song 1','Monologue','Song 2','Scene Change','Act 2','Climax','Finale','Curtain','House Full','Work Light'];
+const CUE_TIMES = ['3.0','2.0','1.5','0.5','2.0','4.0','2.5','1.0','3.0','2.0','5.0','0.3'];
+
+/* ══ SETUP WIZARD ══ */
+let setupStep = 0;
+
+function setupConnect() {
+  const host = document.getElementById('s-wsHost').value.trim();
+  const port = document.getElementById('s-wsPort').value.trim();
+  if (!host) { setS0('err','Enter a bridge host or domain'); return; }
+
+  let wsURL;
+  try {
+    wsURL = buildBridgeWebSocketURL(host, port);
+  } catch (err) {
+    setS0('err', 'Invalid bridge endpoint: ' + err.message);
+    return;
+  }
+
+  setS0('connecting', `Connecting to ${wsURL} …`);
+  document.getElementById('s0btn').disabled = true;
+  try {
+    if (ws) try { ws.close(); } catch(e) {}
+    ws = new WebSocket(wsURL);
+    const to = setTimeout(() => {
+      if (!oscConn) { try { ws.close(); } catch(e) {} setS0('err','Timed out — is the bridge running?'); document.getElementById('s0btn').disabled = false; }
+    }, 7000);
+    ws.onopen = () => {
+      clearTimeout(to); oscConn = true;
+      setS0('ok', `Connected · ${wsURL}`);
+      setTimeout(() => goStep(1), 500);
+    };
+    ws.onclose = () => {
+      oscConn = false; updateConn(false);
+      if (setupStep === 0) { setS0('err','Connection closed'); document.getElementById('s0btn').disabled = false; }
+      logOSC('err','','DISCONNECTED');
+    };
+    ws.onerror = () => {
+      clearTimeout(to); oscConn = false;
+      setS0('err','Cannot connect — check host / port');
+      document.getElementById('s0btn').disabled = false;
+    };
+    ws.onmessage = (e) => { logOSC('in','', e.data); flashTX(); };
+  } catch(err) {
+    setS0('err','Invalid address: ' + err.message);
+    document.getElementById('s0btn').disabled = false;
+  }
+}
+
+function setS0(type, msg) {
+  const el = document.getElementById('s0st');
+  el.className = 'sstatus ' + type;
+  document.getElementById('s0msg').textContent = msg;
+}
+
+function goStep(n) {
+  setupStep = n;
+  document.querySelectorAll('.spanel').forEach((p,i) => p.classList.toggle('active', i === n));
+  document.querySelectorAll('.stab').forEach((t,i) => { t.classList.toggle('active', i === n); t.classList.toggle('done', i < n); });
+}
+
+function setupBack() { goStep(0); document.getElementById('s0btn').disabled = false; }
+
+function setupFinish() {
+  const wh = document.getElementById('s-wsHost').value.trim();
+  const wp = document.getElementById('s-wsPort').value.trim();
+  const oh = document.getElementById('s-oscHost').value.trim();
+  const op = document.getElementById('s-oscPort').value.trim() || '3032';
+  document.getElementById('wsHost').value = wh;
+  document.getElementById('wsPort').value = wp;
+  document.getElementById('oscHost').value = oh;
+  document.getElementById('oscPort').value = op;
+  document.getElementById('done-b').textContent = wp ? `${wh}:${wp}` : wh;
+  document.getElementById('done-c').textContent = oh || '(not set)';
+  document.getElementById('done-p').textContent = op;
+  goStep(2);
+}
+
+function launchApp() {
+  document.getElementById('setupOverlay').style.display = 'none';
+  document.getElementById('appShell').style.display = 'flex';
+  initApp();
+}
+
+/* ══ OSC ══ */
+function sendOSC(path, val) {
+  const msg = JSON.stringify({ path, args: val !== undefined ? [val] : [] });
+  if (ws && ws.readyState === WebSocket.OPEN) { ws.send(msg); flashTX(); }
+  logOSC('out', path, val !== undefined ? String(val) : '');
+}
+
+function reconnectOSC() {
+  const host = document.getElementById('wsHost').value.trim();
+  const port = document.getElementById('wsPort').value.trim();
+  if (!host) return;
+
+  let wsURL;
+  try {
+    wsURL = buildBridgeWebSocketURL(host, port);
+  } catch (e) {
+    logOSC('err', '', 'Invalid bridge endpoint: ' + e.message);
+    updateConn(false, 'err');
+    return;
+  }
+
+  try {
+    if (ws) ws.close();
+    ws = new WebSocket(wsURL);
+    ws.onopen  = () => { oscConn = true;  updateConn(true);  logOSC('sys','','Reconnected'); };
+    ws.onclose = () => { oscConn = false; updateConn(false); };
+    ws.onerror = () => updateConn(false,'err');
+    ws.onmessage = (e) => { logOSC('in','',e.data); flashTX(); };
+  } catch(e) { logOSC('err','',e.message); }
+}
+function disconnectOSC() { if (ws) ws.close(); oscConn = false; updateConn(false); }
+
+function updateConn(on, state) {
+  const d = document.getElementById('cdot'), l = document.getElementById('clbl');
+  if (!d) return;
+  d.className = 'cdot ' + (on ? 'on' : state === 'err' ? 'err' : '');
+  if (l) l.textContent = on ? 'LIVE' : 'OFF';
+}
+function flashTX() {
+  const d = document.getElementById('cdot'); if (!d) return;
+  const prev = d.className; d.className = 'cdot tx';
+  setTimeout(() => d.className = prev, 90);
+}
+function logOSC(dir, path, val) {
+  const log = document.getElementById('oscLog'); if (!log) return;
+  const now = new Date();
+  const ts  = `${p2(now.getHours())}:${p2(now.getMinutes())}:${p2(now.getSeconds())}`;
+  const sym = {out:'→',in:'←',err:'!',sys:'•'}[dir] || '•';
+  const ln = document.createElement('div');
+  ln.className = 'll';
+  ln.innerHTML = `<span class="ll-ts">${ts}</span><span class="ll-dir ${dir}">${sym}</span><span class="ll-path">${path}</span><span class="ll-v">${val??''}</span>`;
+  log.prepend(ln);
+  while (log.children.length > 150) log.removeChild(log.lastChild);
+}
+function clearLog() { const l=document.getElementById('oscLog'); if(l) l.innerHTML=''; }
+function p2(n) { return String(n).padStart(2,'0'); }
+
+function buildBridgeWebSocketURL(hostInput, portInput) {
+  const raw = (hostInput || '').trim();
+  if (!raw) throw new Error('Host is empty');
+
+  const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw);
+  const parsed = new URL(hasScheme ? raw : `http://${raw}`);
+
+  let protocol;
+  if (parsed.protocol === 'ws:' || parsed.protocol === 'wss:') {
+    protocol = parsed.protocol;
+  } else if (parsed.protocol === 'http:') {
+    protocol = 'ws:';
+  } else if (parsed.protocol === 'https:') {
+    protocol = 'wss:';
+  } else {
+    protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  }
+
+  const finalPort = (portInput || '').trim() || parsed.port;
+  const path = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : '';
+  const query = parsed.search || '';
+
+  const hostName = parsed.hostname;
+  const hostPart = hostName.includes(':') ? `[${hostName}]` : hostName;
+
+  return `${protocol}//${hostPart}${finalPort ? ':' + finalPort : ''}${path}${query}`;
+}
+
+/* ══ CUE CONTROLS ══ */
+function triggerGo() {
+  sendOSC('/eos/go', 1.0);
+  const btn = document.getElementById('btnGoB');
+  if (btn) { btn.classList.add('flash'); setTimeout(()=>btn.classList.remove('flash'),220); }
+  curCue = Math.min(curCue+1,50);
+  setCueDisp(); highlightCue();
+}
+function triggerStop() { sendOSC('/eos/stop',1.0); setCueDisp('STOP'); }
+function triggerBack() { sendOSC('/eos/back',1.0); curCue=Math.max(1,curCue-1); setCueDisp(); highlightCue(); }
+function selectCue(n) { curCue=n; sendOSC(`/eos/cue/${n}/fire`,1.0); setCueDisp(); highlightCue(); }
+function setCueDisp(sfx) {
+  const t = `CUE ${curCue}.0 — ${sfx||'READY'}`;
+  const h=document.getElementById('hdrCue'), b=document.getElementById('bbarCue');
+  if(h) h.textContent=t; if(b) b.textContent=`Q ${curCue}`;
+}
+function highlightCue() {
+  document.querySelectorAll('.btn-cue').forEach((b,i) => b.classList.toggle('active',i+1===curCue));
+  document.querySelectorAll('.cue-row').forEach((r,i) => {
+    r.classList.toggle('active',i+1===curCue);
+    const s=r.querySelector('.cue-st');
+    if(s){s.textContent=i+1===curCue?'ACTIVE':''; s.style.color=i+1===curCue?'var(--green)':'';}
+  });
+}
+function homeAll() {
+  [75,60,45,45,80,20,35,35,55,70,70,0].forEach((v,i)=>{ chanVals[i]=v; });
+  buildFaders();
+}
+function toggleBlackout() {
+  boOn=!boOn;
+  const b=document.getElementById('btnBo'); if(b) b.classList.toggle('on',boOn);
+  sendOSC('/eos/blackout',boOn?1:0);
+  const h=document.getElementById('hdrCue'); if(h) h.textContent=boOn?'■■ BLACKOUT ■■':`CUE ${curCue}.0 — READY`;
+}
+
+/* ══ CHANNEL FADERS ══ */
+function buildCueNums() {
+  const el=document.getElementById('cueNums'); if(!el) return; el.innerHTML='';
+  for(let i=1;i<=16;i++){
+    const b=document.createElement('button');
+    b.className='btn-cue'+(i===curCue?' active':'');
+    b.textContent=`Q${i}`; b.onclick=()=>selectCue(i);
+    el.appendChild(b);
+  }
+}
+
+function buildFaders() {
+  const grid=document.getElementById('faderGrid'); if(!grid) return; grid.innerHTML='';
+  const count=parseInt(document.getElementById('cfgChan')?.value)||24;
+  const showing=Math.min(12,count-bankOff);
+  for(let i=0;i<showing;i++){
+    const ch=i+bankOff, val=chanVals[ch];
+    const s=document.createElement('div');
+    s.className='ch-strip'; s.id=`ch-${ch}`;
+    s.innerHTML=`
+      <div class="ch-num">${ch+1}</div>
+      <div class="ch-name">${CHAN_NAMES[ch]||`CH${ch+1}`}</div>
+      <div class="ch-pct" id="pct-${ch}">${val}%</div>
+      <div class="vfader" id="vf-${ch}">
+        <div class="vf-track"><div class="vf-fill" id="vff-${ch}" style="height:${val}%"></div></div>
+        <div class="vf-knob" id="vfk-${ch}"><div class="vf-kline"></div></div>
+      </div>
+      <div class="vu-row" id="vu-${ch}">${[0,1,2,3,4,5,6].map(j=>`<div class="vu-seg" id="vs-${ch}-${j}"></div>`).join('')}</div>
+      <div class="ch-cdot" id="cdot-${ch}" style="background:${clrHex(ch)};" onclick="cycleChanClr(${ch})"></div>
+      <button class="btn-flash" id="fl-${ch}" ontouchstart="flashCh(event,${ch})" onclick="flashCh(event,${ch})">FLASH</button>
+    `;
+    grid.appendChild(s);
+    applyFader(ch);
+    setupVFader(ch);
+  }
+}
+
+function applyFader(ch) {
+  const val=chanVals[ch];
+  const fill=document.getElementById(`vff-${ch}`);
+  const knob=document.getElementById(`vfk-${ch}`);
+  const pct=document.getElementById(`pct-${ch}`);
+  const vf=document.getElementById(`vf-${ch}`);
+  if(!fill||!vf) return;
+  fill.style.height=val+'%';
+  knob.style.bottom=`calc(${val}% - 8px)`;
+  pct.textContent=val+'%';
+  updateVU(ch,val);
+}
+
+function setupVFader(ch) {
+  const knob=document.getElementById(`vfk-${ch}`);
+  const vf=document.getElementById(`vf-${ch}`);
+  if(!knob||!vf) return;
+  vf.style.touchAction='none'; knob.style.touchAction='none';
+  let drag=false,startY,startVal,tid=null;
+
+  function getY(e) {
+    if(e.touches)        { for(const t of e.touches)        if(t.identifier===tid) return t.clientY; return e.touches[0].clientY; }
+    if(e.changedTouches) { for(const t of e.changedTouches) if(t.identifier===tid) return t.clientY; return e.changedTouches[0].clientY; }
+    return e.clientY;
+  }
+  function start(e) {
+    drag=true; tid=e.touches?e.touches[0].identifier:null;
+    startY=getY(e); startVal=chanVals[ch];
+    knob.classList.add('act');
+    document.addEventListener('mousemove',move,{passive:false});
+    document.addEventListener('touchmove',move,{passive:false});
+    document.addEventListener('mouseup',end);
+    document.addEventListener('touchend',end);
+    document.addEventListener('touchcancel',end);
+    e.preventDefault(); e.stopPropagation();
+  }
+  function move(e) {
+    if(!drag) return;
+    const rect=vf.getBoundingClientRect();
+    const dy=startY-getY(e);
+    const v=Math.max(0,Math.min(100,startVal+Math.round(dy/rect.height*100)));
+    chanVals[ch]=v; applyFader(ch);
+    if(document.getElementById('cfgLive')?.checked) sendOSC(`/eos/chan/${ch+1}/param/intens`,+(v/100).toFixed(3));
+    e.preventDefault();
+  }
+  function end() {
+    if(!drag) return; drag=false; tid=null;
+    knob.classList.remove('act');
+    document.removeEventListener('mousemove',move); document.removeEventListener('touchmove',move);
+    document.removeEventListener('mouseup',end); document.removeEventListener('touchend',end); document.removeEventListener('touchcancel',end);
+    sendOSC(`/eos/chan/${ch+1}/param/intens`,+(chanVals[ch]/100).toFixed(3));
+  }
+  knob.addEventListener('mousedown',start);
+  knob.addEventListener('touchstart',start,{passive:false});
+  knob.addEventListener('dblclick',()=>{ chanVals[ch]=0; applyFader(ch); sendOSC(`/eos/chan/${ch+1}/param/intens`,0); });
+}
+
+function updateVU(ch,val) {
+  for(let j=0;j<7;j++){
+    const s=document.getElementById(`vs-${ch}-${j}`); if(!s) continue;
+    s.className='vu-seg'+(val>=(j+1)/7*100?(j<4?' g':j<6?' a':' r'):'');
+  }
+}
+
+function flashCh(e,ch) {
+  e.preventDefault();
+  const btn=document.getElementById(`fl-${ch}`); if(!btn||btn.classList.contains('on')) return;
+  btn.classList.add('on'); const old=chanVals[ch];
+  chanVals[ch]=100; applyFader(ch); sendOSC(`/eos/chan/${ch+1}/param/intens`,1.0);
+  setTimeout(()=>{ btn.classList.remove('on'); chanVals[ch]=old; applyFader(ch); sendOSC(`/eos/chan/${ch+1}/param/intens`,+(old/100).toFixed(3)); },180);
+}
+
+const CH_COLORS=['#fff8e0','#ffd080','#e84040','#4080ff','#60e070','#8020ff','#20d8cc','#ff60c0'];
+function clrHex(ch){ return CH_COLORS[chanClrs[ch]||0]; }
+function cycleChanClr(ch){ chanClrs[ch]=(chanClrs[ch]+1)%CH_COLORS.length; const d=document.getElementById(`cdot-${ch}`); if(d) d.style.background=clrHex(ch); }
+
+function changeBank(off,btn) {
+  bankOff=off;
+  document.querySelectorAll('.bkbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  buildFaders();
+}
+
+/* ══ GRAND MASTER ══ */
+function setupGMFader() {
+  const knob=document.getElementById('gmKnob'), fader=document.getElementById('gmFader');
+  if(!knob||!fader) return;
+  fader.style.touchAction='none'; knob.style.touchAction='none';
+  let drag=false,startY,startVal,tid=null;
+  function getY(e) {
+    if(e.touches)        { for(const t of e.touches)        if(t.identifier===tid) return t.clientY; return e.touches[0].clientY; }
+    if(e.changedTouches) { for(const t of e.changedTouches) if(t.identifier===tid) return t.clientY; return e.changedTouches[0].clientY; }
+    return e.clientY;
+  }
+  function start(e) {
+    drag=true; tid=e.touches?e.touches[0].identifier:null;
+    startY=getY(e); startVal=gmVal; knob.classList.add('act');
+    document.addEventListener('mousemove',move,{passive:false});
+    document.addEventListener('touchmove',move,{passive:false});
+    document.addEventListener('mouseup',end); document.addEventListener('touchend',end); document.addEventListener('touchcancel',end);
+    e.preventDefault();
+  }
+  function move(e) {
+    if(!drag) return;
+    const rect=fader.getBoundingClientRect();
+    gmVal=Math.max(0,Math.min(100,startVal+Math.round((startY-getY(e))/rect.height*100)));
+    document.getElementById('gmFill').style.height=gmVal+'%';
+    document.getElementById('gmKnob').style.bottom=`calc(${gmVal}% - 9px)`;
+    document.getElementById('gmPct').textContent=gmVal+'%';
+    sendOSC('/eos/grandmaster',+(gmVal/100).toFixed(3)); e.preventDefault();
+  }
+  function end() {
+    drag=false; tid=null; knob.classList.remove('act');
+    document.removeEventListener('mousemove',move); document.removeEventListener('touchmove',move);
+    document.removeEventListener('mouseup',end); document.removeEventListener('touchend',end); document.removeEventListener('touchcancel',end);
+  }
+  knob.addEventListener('mousedown',start);
+  knob.addEventListener('touchstart',start,{passive:false});
+  knob.addEventListener('dblclick',()=>{ gmVal=100; document.getElementById('gmFill').style.height='100%'; document.getElementById('gmKnob').style.bottom='calc(100% - 9px)'; document.getElementById('gmPct').textContent='100%'; sendOSC('/eos/grandmaster',1.0); });
+}
+
+/* ══ MACROS ══ */
+function buildMacros() {
+  const g=document.getElementById('macroGrid'); if(!g) return; g.innerHTML='';
+  MACRO_LABELS.forEach((lbl,i)=>{
+    const btn=document.createElement('button');
+    btn.className='btn-mac'; btn.id=`mac-${i}`; btn.textContent=lbl;
+    btn.onclick=()=>{ macroOn[i]=!macroOn[i]; btn.classList.toggle('on',macroOn[i]); sendOSC(`/eos/macro/${i+1}/fire`,1.0); };
+    g.appendChild(btn);
+  });
+}
+
+/* ══ ENCODER SVG — pure math ══ */
+const ES=50,EX=25,EY=25,ER=18;
+const EA=135*Math.PI/180;  // start angle
+const EW=270*Math.PI/180;  // sweep
+
+function encSVG(val,color) {
+  const ang = EA + val*EW;
+  // Track full arc end
+  const tEnd=EA+EW, tX2=EX+Math.cos(tEnd)*ER, tY2=EY+Math.sin(tEnd)*ER;
+  const aX1=EX+Math.cos(EA)*ER, aY1=EY+Math.sin(EA)*ER;
+  // Filled arc end
+  const aX2=EX+Math.cos(ang)*ER, aY2=EY+Math.sin(ang)*ER;
+  const large=(val*EW)>Math.PI?1:0;
+  // Indicator line (inner 8px → outer ER-3)
+  const lx1=EX+Math.cos(ang)*8, ly1=EY+Math.sin(ang)*8;
+  const lx2=EX+Math.cos(ang)*(ER-3), ly2=EY+Math.sin(ang)*(ER-3);
+
+  return `<svg width="${ES}" height="${ES}" viewBox="0 0 ${ES} ${ES}">
+    <path d="M ${aX1} ${aY1} A ${ER} ${ER} 0 1 1 ${tX2} ${tY2}" fill="none" stroke="var(--b2)" stroke-width="3" stroke-linecap="round"/>
+    ${val>0.005?`<path d="M ${aX1} ${aY1} A ${ER} ${ER} 0 ${large} 1 ${aX2} ${aY2}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" style="filter:drop-shadow(0 0 3px ${color})"/>`:''}
+    <circle cx="${EX}" cy="${EY}" r="12" fill="var(--panel2)" stroke="var(--b2)" stroke-width="1.5"/>
+    <line x1="${lx1}" y1="${ly1}" x2="${lx2}" y2="${ly2}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="${EX}" cy="${EY}" r="2.5" fill="${color}" opacity="0.85"/>
+  </svg>`;
+}
+
+function makeEnc(mi,param,label,val,color) {
+  return `<div class="enc-group">
+    <div class="enc-wrap" id="ew-${mi}-${param}" data-val="${val}" data-color="${color}">${encSVG(val,color)}</div>
+    <div class="enc-val" style="color:${color}" id="ev-${mi}-${param}">${Math.round(val*100)}%</div>
+    <div class="enc-lbl">${label}</div>
+  </div>`;
+}
+
+function redrawEnc(mi,param,val) {
+  const wrap=document.getElementById(`ew-${mi}-${param}`); if(!wrap) return;
+  const color=wrap.dataset.color;
+  wrap.innerHTML=encSVG(val,color);
+  wrap.dataset.val=val;
+  const v=document.getElementById(`ev-${mi}-${param}`); if(v) v.textContent=Math.round(val*100)+'%';
+}
+
+/* ══ ENCODER DRAG — touch-bulletproof ══ */
+function setupEncoders(mi) {
+  const PARAMS=[
+    {param:'intens',color:'var(--amber)'},{param:'zoom',color:'var(--blue)'},
+    {param:'focus',color:'var(--green)'},{param:'iris',color:'var(--cyan)'},
+    {param:'speed',color:'var(--purple)'},{param:'strobe',color:'var(--red)'},
+  ];
+  PARAMS.forEach(({param,color})=>{
+    const wrap=document.getElementById(`ew-${mi}-${param}`); if(!wrap) return;
+    wrap.style.touchAction='none';
+    wrap.style.userSelect='none';
+    wrap.style.webkitUserSelect='none';
+
+    let drag=false,startY,startVal,tid=null;
+
+    function getY(e) {
+      if(e.touches)        { for(const t of e.touches)        if(t.identifier===tid) return t.clientY; return e.touches[0]?.clientY??startY; }
+      if(e.changedTouches) { for(const t of e.changedTouches) if(t.identifier===tid) return t.clientY; return e.changedTouches[0]?.clientY??startY; }
+      return e.clientY;
+    }
+
+    function onStart(e) {
+      drag=true;
+      tid=e.touches?e.touches[0].identifier:null;
+      startY=getY(e);
+      startVal=parseFloat(wrap.dataset.val)||0;
+      document.addEventListener('mousemove',onMove,{passive:false});
+      document.addEventListener('touchmove',onMove,{passive:false});
+      document.addEventListener('mouseup',onEnd);
+      document.addEventListener('touchend',onEnd);
+      document.addEventListener('touchcancel',onEnd);
+      e.preventDefault(); e.stopPropagation();
+    }
+
+    function onMove(e) {
+      if(!drag) return;
+      // 90px full range — feels natural under a thumb
+      const v=Math.max(0,Math.min(1,startVal+(startY-getY(e))/90));
+      moverState[mi][param]=v;
+      redrawEnc(mi,param,v);
+      if(document.getElementById('cfgLive')?.checked) sendOSC(`/eos/chan/${mi+25}/param/${param}`,+v.toFixed(3));
+      e.preventDefault();
+    }
+
+    function onEnd() {
+      if(!drag) return;
+      drag=false; tid=null;
+      document.removeEventListener('mousemove',onMove); document.removeEventListener('touchmove',onMove);
+      document.removeEventListener('mouseup',onEnd); document.removeEventListener('touchend',onEnd); document.removeEventListener('touchcancel',onEnd);
+      sendOSC(`/eos/chan/${mi+25}/param/${param}`,+moverState[mi][param].toFixed(3));
+    }
+
+    wrap.addEventListener('mousedown',onStart);
+    wrap.addEventListener('touchstart',onStart,{passive:false});
+    wrap.addEventListener('wheel',(e)=>{
+      const v=Math.max(0,Math.min(1,parseFloat(wrap.dataset.val)+(e.deltaY<0?0.025:-0.025)));
+      moverState[mi][param]=v; redrawEnc(mi,param,v);
+      sendOSC(`/eos/chan/${mi+25}/param/${param}`,+v.toFixed(3)); e.preventDefault();
+    },{passive:false});
+  });
+}
+
+/* ══ MOVERS ══ */
+function initMovers() {
+  const count=parseInt(document.getElementById('cfgMovers')?.value)||6;
+  moverState.length=0;
+  for(let i=0;i<count;i++) moverState.push({pan:0.5,tilt:0.5,intens:0.8,zoom:0.5,focus:0.5,iris:0.8,speed:0.5,strobe:0,color:0,gobo:0});
+}
+
+function buildMovers() {
+  const grid=document.getElementById('moverGrid'); if(!grid) return; grid.innerHTML='';
+  moverState.forEach((fx,i)=>{
+    const type=MOVER_TYPES[i]||'SPOT';
+    const card=document.createElement('div');
+    card.className='mover-card'; card.id=`mc-${i}`;
+    card.innerHTML=`
+      <div class="mover-hdr">
+        <div>
+          <div class="mover-name">CH ${i+25} · ${MOVER_NAMES[i]||'MOVER '+(i+1)}</div>
+          <div class="mover-mdl">${MOVER_MODELS[i]||'Moving Head'}</div>
+        </div>
+        <span class="badge ${type==='WASH'?'badge-w':'badge-s'}">${type}</span>
+      </div>
+      <div class="xypad-row">
+        <div>
+          <div class="ctitle" style="margin-bottom:6px;">Pan / Tilt</div>
+          <div class="xypad" id="xy-${i}">
+            <div class="xypad-grid"></div>
+            <div class="xypad-ch h"></div><div class="xypad-ch v"></div>
+            <div class="xypad-dot" id="xyd-${i}" style="left:${fx.pan*100}%;top:${(1-fx.tilt)*100}%"></div>
+          </div>
+        </div>
+        <div class="xy-readouts">
+          <div class="xy-val"><span>PAN</span><span id="pv-${i}">${Math.round(fx.pan*360-180)}°</span></div>
+          <div class="xy-val"><span>TILT</span><span id="tv-${i}">${Math.round(fx.tilt*180-90)}°</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;">
+          ${makeEnc(i,'intens','INTENS',fx.intens,'var(--amber)')}
+          ${makeEnc(i,'zoom','ZOOM',fx.zoom,'var(--blue)')}
+        </div>
+      </div>
+      <div>
+        <div class="ctitle" style="margin-bottom:6px;">Attributes</div>
+        <div class="enc-row">
+          ${makeEnc(i,'focus','FOCUS',fx.focus,'var(--green)')}
+          ${makeEnc(i,'iris','IRIS',fx.iris,'var(--cyan)')}
+          ${makeEnc(i,'speed','SPEED',fx.speed,'var(--purple)')}
+          ${makeEnc(i,'strobe','STROB',fx.strobe,'var(--red)')}
+        </div>
+      </div>
+      <div>
+        <div class="ctitle" style="margin-bottom:6px;">Color</div>
+        <div class="color-row" id="clr-${i}">
+          ${COLOR_PRESETS.map((c,j)=>`<div class="csw${fx.color===j?' active':''}" style="background:${c.hex}" title="${c.name}" onclick="setMoverColor(${i},${j})"></div>`).join('')}
+          <span class="clrn" id="clrn-${i}">${COLOR_PRESETS[fx.color].name}</span>
+        </div>
+      </div>
+      <div>
+        <div class="ctitle" style="margin-bottom:6px;">Gobo</div>
+        <div class="gobo-row" id="gobo-${i}">
+          ${GOBO_LABELS.map((g,j)=>`<div class="btn-gobo${fx.gobo===j?' active':''}" onclick="setMoverGobo(${i},${j})">${g}</div>`).join('')}
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+    setupXYPad(i);
+    setupEncoders(i);
+  });
+}
+
+function setupXYPad(mi) {
+  const pad=document.getElementById(`xy-${mi}`), dot=document.getElementById(`xyd-${mi}`);
+  if(!pad||!dot) return;
+  pad.style.touchAction='none';
+  let drag=false,tid=null;
+
+  function getPos(e) {
+    const r=pad.getBoundingClientRect(); let cx,cy;
+    if(e.touches)        { let t=null; for(const tt of e.touches)        if(tt.identifier===tid){t=tt;break;} if(!t)t=e.touches[0]; cx=t.clientX; cy=t.clientY; }
+    else if(e.changedTouches){ let t=null; for(const tt of e.changedTouches) if(tt.identifier===tid){t=tt;break;} if(!t)t=e.changedTouches[0]; cx=t.clientX; cy=t.clientY; }
+    else { cx=e.clientX; cy=e.clientY; }
+    return { x:Math.max(0,Math.min(1,(cx-r.left)/r.width)), y:Math.max(0,Math.min(1,(cy-r.top)/r.height)) };
+  }
+
+  function apply(pos) {
+    moverState[mi].pan=pos.x; moverState[mi].tilt=1-pos.y;
+    dot.style.left=(pos.x*100)+'%'; dot.style.top=(pos.y*100)+'%';
+    const pv=document.getElementById(`pv-${mi}`), tv=document.getElementById(`tv-${mi}`);
+    if(pv) pv.textContent=Math.round(pos.x*360-180)+'°';
+    if(tv) tv.textContent=Math.round((1-pos.y)*180-90)+'°';
+    if(document.getElementById('cfgLive')?.checked){ sendOSC(`/eos/chan/${mi+25}/param/pan`,+pos.x.toFixed(3)); sendOSC(`/eos/chan/${mi+25}/param/tilt`,+(1-pos.y).toFixed(3)); }
+  }
+
+  pad.addEventListener('mousedown',(e)=>{ drag=true; apply(getPos(e)); e.preventDefault(); });
+  pad.addEventListener('touchstart',(e)=>{ drag=true; tid=e.touches[0].identifier; apply(getPos(e)); e.preventDefault(); },{passive:false});
+  document.addEventListener('mousemove',(e)=>{ if(drag) apply(getPos(e)); });
+  document.addEventListener('touchmove',(e)=>{ if(drag){apply(getPos(e)); e.preventDefault();} },{passive:false});
+  document.addEventListener('mouseup',()=>{ if(drag){drag=false; sendOSC(`/eos/chan/${mi+25}/param/pan`,+moverState[mi].pan.toFixed(3)); sendOSC(`/eos/chan/${mi+25}/param/tilt`,+moverState[mi].tilt.toFixed(3));} });
+  document.addEventListener('touchend',()=>{ drag=false; tid=null; });
+  document.addEventListener('touchcancel',()=>{ drag=false; tid=null; });
+}
+
+function setMoverColor(mi,idx) {
+  moverState[mi].color=idx;
+  document.querySelectorAll(`#clr-${mi} .csw`).forEach((s,j)=>s.classList.toggle('active',j===idx));
+  const n=document.getElementById(`clrn-${mi}`); if(n) n.textContent=COLOR_PRESETS[idx].name;
+  sendOSC(`/eos/chan/${mi+25}/param/color/hue`,+(idx/8).toFixed(3));
+}
+function setMoverGobo(mi,idx) {
+  moverState[mi].gobo=idx;
+  document.querySelectorAll(`#gobo-${mi} .btn-gobo`).forEach((b,j)=>b.classList.toggle('active',j===idx));
+  sendOSC(`/eos/chan/${mi+25}/param/gobo`,idx);
+}
+function selectAllMovers() { moverState.forEach((_,i)=>document.getElementById(`mc-${i}`)?.classList.add('sel')); }
+function homeAllMovers() {
+  moverState.forEach((m,i)=>{
+    m.pan=0.5; m.tilt=0.5;
+    const d=document.getElementById(`xyd-${i}`); if(d){d.style.left='50%';d.style.top='50%';}
+    const pv=document.getElementById(`pv-${i}`),tv=document.getElementById(`tv-${i}`);
+    if(pv) pv.textContent='0°'; if(tv) tv.textContent='0°';
+    sendOSC(`/eos/chan/${i+25}/param/pan`,0.5); sendOSC(`/eos/chan/${i+25}/param/tilt`,0.5);
+  });
+}
+function rebuildMovers() { initMovers(); buildMovers(); }
+
+/* ══ CUE LIST ══ */
+function buildCueList() {
+  const list=document.getElementById('cueList'); if(!list) return;
+  const count=parseInt(document.getElementById('cfgCues')?.value)||20;
+  list.innerHTML='';
+  for(let i=0;i<count;i++){
+    const row=document.createElement('div');
+    row.className='cue-row'+(i+1===curCue?' active':''); row.id=`cr-${i+1}`;
+    row.innerHTML=`<span class="cue-n">${i+1}.0</span><span class="cue-name">${CUE_NAMES[i]||`Scene ${i+1}`}</span><span class="cue-t">${CUE_TIMES[i]||'2.0'}s</span><span class="cue-st" style="color:${i+1===curCue?'var(--green)':''}">${i+1===curCue?'ACTIVE':''}</span><button class="btn-cue-go" onclick="selectCue(${i+1})">GO</button>`;
+    list.appendChild(row);
+  }
+}
+
+/* ══ SETTINGS ══ */
+function buildOscRef() {
+  const el=document.getElementById('oscRef'); if(!el) return;
+  el.innerHTML=OSC_PATHS.map(p=>`<div class="osc-ref-row"><span class="orp">${p.path}</span><span class="ort">${p.type}</span><span class="ord">${p.desc}</span></div>`).join('');
+}
+
+/* ══ TABS ══ */
+function showTab(name,btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+
+/* ══ INIT ══ */
+function initApp() {
+  [75,60,45,45,80,20,35,35,55,70,70,0,50,40,0,0,60,60,30,30,0,0,80,80].forEach((v,i)=>chanVals[i]=v);
+  buildCueNums();
+  buildFaders();
+  setupGMFader();
+  buildMacros();
+  initMovers();
+  buildMovers();
+  buildCueList();
+  buildOscRef();
+  document.getElementById('gmFill').style.height='100%';
+  document.getElementById('gmKnob').style.bottom='calc(100% - 9px)';
+  logOSC('sys','','Controller ready');
+  requestAnimationFrame(()=>{ for(let i=0;i<12;i++) applyFader(i+bankOff); });
+}
+
+window.addEventListener('resize',()=>{ requestAnimationFrame(()=>{ for(let i=0;i<12;i++) applyFader(i+bankOff); }); });
+</script>
+</body>
+</html>
