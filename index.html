@@ -106,7 +106,7 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
 .sinput {
   width:100%; background:var(--bg2); border:1px solid var(--b2); border-radius:var(--r5);
   color:var(--amber); font-family:var(--mono); font-size:16px; padding:11px 13px;
-  outline:none; -webkit-appearance:none; transition:border-color 0.15s,box-shadow 0.15s;
+  outline:none; appearance:none; -webkit-appearance:none; transition:border-color 0.15s,box-shadow 0.15s;
 }
 .sinput:focus { border-color:var(--amber); box-shadow:0 0 0 2px var(--amberg); }
 .sinput::placeholder { color:var(--t3); }
@@ -278,6 +278,27 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
 }
 .btn-flash:active,.btn-flash.on { background:var(--amber); color:#000; border-color:var(--amber); }
 
+/* Channel pages */
+.cp-nav { display:grid; grid-template-columns:repeat(auto-fill,minmax(58px,1fr)); gap:6px; }
+.btn-cp {
+  background:var(--panel2); border:1px solid var(--b1); color:var(--t2);
+  font-family:var(--mono); font-size:11px; padding:8px 6px; border-radius:var(--r3);
+  cursor:pointer; transition:all 0.1s;
+}
+.btn-cp.active { border-color:var(--cyan); color:var(--cyan); background:var(--cyang); }
+.cp-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px; }
+.cp-name { font-family:var(--raj); font-size:18px; font-weight:600; color:var(--t1); }
+.cp-sub { font-family:var(--mono); font-size:10px; color:var(--t3); }
+.cp-live { font-family:var(--mono); font-size:12px; color:var(--amber); }
+.cp-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.cp-preset {
+  min-width:48px; text-align:center; background:var(--panel2); border:1px solid var(--b1); color:var(--amber);
+  font-family:var(--mono); font-size:11px; padding:8px 8px; border-radius:var(--r3); cursor:pointer;
+}
+.cp-preset:active { transform:scale(0.96); }
+.cp-fade { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.cp-fade .finput { max-width:90px; }
+
 /* GM */
 .gm-wrap { display:flex; gap:10px; align-items:flex-end; }
 .gm-strip {
@@ -409,7 +430,7 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
 .finput {
   flex:1; background:var(--bg2); border:1px solid var(--b2); border-radius:var(--r3);
   color:var(--amber); font-family:var(--mono); font-size:13px; padding:7px 10px; outline:none;
-  -webkit-appearance:none; transition:border-color 0.15s;
+  appearance:none; -webkit-appearance:none; transition:border-color 0.15s;
 }
 .finput:focus { border-color:var(--amber); }
 
@@ -546,7 +567,7 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
     <div class="hdr-sep"></div>
     <div class="hdr-mdl">ELEMENT</div>
     <div class="hdr-cue" id="hdrCue">CUE 1.0 — READY</div>
-    <div class="hdr-conn" onclick="showTab('settings',document.querySelectorAll('.tab')[3])">
+    <div class="hdr-conn" onclick="showTab('settings',document.getElementById('tab-settings'))">
       <div class="cdot on" id="cdot"></div>
       <span class="clbl" id="clbl">LIVE</span>
     </div>
@@ -554,9 +575,10 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
 
   <nav class="tabs">
     <button class="tab active" onclick="showTab('channels',this)">Channels</button>
+    <button class="tab" onclick="showTab('channel-pages',this)">Channel Pages</button>
     <button class="tab" onclick="showTab('movers',this)">Movers</button>
     <button class="tab" onclick="showTab('cues',this)">Cues</button>
-    <button class="tab" onclick="showTab('settings',this)">Settings</button>
+    <button class="tab" id="tab-settings" onclick="showTab('settings',this)">Settings</button>
   </nav>
 
   <div class="pages">
@@ -609,6 +631,52 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
       </div>
     </div>
 
+    <!-- CHANNEL PAGES -->
+    <div class="page" id="page-channel-pages">
+      <div class="card">
+        <div class="ctitle">Channel Select</div>
+        <div class="cp-nav" id="channelPageNav"></div>
+      </div>
+      <div class="card">
+        <div class="cp-head">
+          <div>
+            <div class="cp-name" id="cpName">CH 1</div>
+            <div class="cp-sub" id="cpSub">INTENSITY CONTROL</div>
+          </div>
+          <div class="cp-live" id="cpLive">0%</div>
+        </div>
+        <div class="cp-fade">
+          <span class="flbl" style="min-width:70px;">Label</span>
+          <input class="finput" id="cpLabel" type="text" maxlength="18" placeholder="Channel label">
+          <button class="btn-qa bl" onclick="saveChannelLabel()">SAVE LABEL</button>
+        </div>
+        <div class="cp-row">
+          <button class="btn-qa" onclick="nudgeChannel(-10)">-10%</button>
+          <button class="btn-qa" onclick="nudgeChannel(-5)">-5%</button>
+          <button class="btn-qa gr" onclick="nudgeChannel(5)">+5%</button>
+          <button class="btn-qa gr" onclick="nudgeChannel(10)">+10%</button>
+          <button class="btn-qa rd" id="cpMuteBtn" onclick="toggleChannelMute()">MUTE</button>
+          <button class="btn-qa bl" id="cpSoloBtn" onclick="toggleChannelSolo()">SOLO</button>
+          <button class="btn-qa" onclick="copySelectedToNext()">COPY -> NEXT</button>
+          <button class="btn-qa" onclick="clearChannelStates()">CLEAR MUTE/SOLO</button>
+        </div>
+        <div class="cp-row">
+          <button class="cp-preset" onclick="setSelectedChannelValue(0)">0%</button>
+          <button class="cp-preset" onclick="setSelectedChannelValue(25)">25%</button>
+          <button class="cp-preset" onclick="setSelectedChannelValue(50)">50%</button>
+          <button class="cp-preset" onclick="setSelectedChannelValue(75)">75%</button>
+          <button class="cp-preset" onclick="setSelectedChannelValue(100)">100%</button>
+        </div>
+        <div class="cp-fade" style="margin-top:10px;">
+          <span class="flbl" style="min-width:70px;">Fade To</span>
+          <input class="finput" id="cpFadeTarget" type="number" min="0" max="100" value="100">
+          <span class="flbl" style="min-width:auto;">Time(s)</span>
+          <input class="finput" id="cpFadeTime" type="number" min="0" step="0.1" value="1.5">
+          <button class="btn-qa gr" onclick="runChannelFade()">RUN FADE</button>
+        </div>
+      </div>
+    </div>
+
     <!-- MOVERS -->
     <div class="page" id="page-movers">
       <div class="card" style="padding:9px 12px;">
@@ -653,7 +721,7 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
         </div>
         <div class="card">
           <div class="ctitle">Fixture Config</div>
-          <div class="frow"><span class="flbl">Channels</span><input class="finput" id="cfgChan" type="number" value="24" style="width:60px;flex:none;" onchange="buildFaders()"></div>
+          <div class="frow"><span class="flbl">Channels</span><input class="finput" id="cfgChan" type="number" value="24" style="width:60px;flex:none;" onchange="onChannelCountChange()"></div>
           <div class="frow"><span class="flbl">Movers</span><input class="finput" id="cfgMovers" type="number" value="6" style="width:60px;flex:none;" onchange="rebuildMovers()"></div>
           <div class="frow"><span class="flbl">Cues</span><input class="finput" id="cfgCues" type="number" value="20" style="width:60px;flex:none;" onchange="buildCueList()"></div>
           <div class="frow"><span class="flbl">Send Live</span><label class="toggle"><input type="checkbox" id="cfgLive" checked><span class="tsl"></span></label></div>
@@ -689,8 +757,13 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
 let ws = null, oscConn = false, curCue = 1, bankOff = 0, boOn = false, gmVal = 100;
 const chanVals = new Array(48).fill(0);
 const chanClrs = new Array(48).fill(0);
+const chanLabels = new Array(48).fill('');
+const chanMuted = new Array(48).fill(false);
 const macroOn  = new Array(12).fill(false);
 const moverState = [];
+let soloChan = -1;
+let selectedChannel = 0;
+let channelFadeTimer = null;
 
 const CHAN_NAMES = ['SPOT 1','SPOT 2','SPOT 3','WASH L','WASH R','WASH C','FRONT L','FRONT R','BACK L','BACK R','CYCO','SPEC 1','SPEC 2','SPEC 3','FOOT L','FOOT R','SHIN L','SHIN R','FLOOR 1','FLOOR 2','STROBE','FOG','SPOT 4','SPOT 5','CH 25','CH 26','CH 27','CH 28','CH 29','CH 30','CH 31','CH 32','CH 33','CH 34','CH 35','CH 36'];
 const MACRO_LABELS = ['ACT 1','ACT 2','CHASE','STROB','SNAP','FADE','BLK IN','BLK OUT','RESET','HOUSE','WORK','PRESET'];
@@ -894,8 +967,9 @@ function highlightCue() {
   });
 }
 function homeAll() {
-  [75,60,45,45,80,20,35,35,55,70,70,0].forEach((v,i)=>{ chanVals[i]=v; });
+  [75,60,45,45,80,20,35,35,55,70,70,0].forEach((v,i)=>setChannelValue(i,v,{send:false}));
   buildFaders();
+  refreshChannelPage();
 }
 function toggleBlackout() {
   boOn=!boOn;
@@ -921,12 +995,13 @@ function buildFaders() {
   const showing=Math.min(12,count-bankOff);
   for(let i=0;i<showing;i++){
     const ch=i+bankOff, val=chanVals[ch];
+    const name=chanLabels[ch]||CHAN_NAMES[ch]||`CH${ch+1}`;
     const s=document.createElement('div');
     s.className='ch-strip'; s.id=`ch-${ch}`;
     s.innerHTML=`
       <div class="ch-num">${ch+1}</div>
-      <div class="ch-name">${CHAN_NAMES[ch]||`CH${ch+1}`}</div>
-      <div class="ch-pct" id="pct-${ch}">${val}%</div>
+      <div class="ch-name">${name}</div>
+      <div class="ch-pct" id="pct-${ch}">${chanMuted[ch]?'MUTE':val+'%'}</div>
       <div class="vfader" id="vf-${ch}">
         <div class="vf-track"><div class="vf-fill" id="vff-${ch}" style="height:${val}%"></div></div>
         <div class="vf-knob" id="vfk-${ch}"><div class="vf-kline"></div></div>
@@ -950,8 +1025,40 @@ function applyFader(ch) {
   if(!fill||!vf) return;
   fill.style.height=val+'%';
   knob.style.bottom=`calc(${val}% - 8px)`;
-  pct.textContent=val+'%';
+  pct.textContent=chanMuted[ch]?'MUTE':val+'%';
+  pct.style.color=chanMuted[ch]?'var(--red)':'var(--amber)';
   updateVU(ch,val);
+}
+
+function getEffectiveChannelValue(ch) {
+  if (chanMuted[ch]) return 0;
+  if (soloChan >= 0 && soloChan !== ch) return 0;
+  return chanVals[ch];
+}
+
+function setChannelValue(ch, val, opts) {
+  const o = opts || {};
+  const send = o.send !== false;
+  const n = Math.max(0, Math.min(100, Math.round(val)));
+  chanVals[ch] = n;
+  applyFader(ch);
+  if (send) {
+    const eff = getEffectiveChannelValue(ch);
+    sendOSC(`/eos/chan/${ch+1}/param/intens`, +(eff/100).toFixed(3));
+  }
+  refreshChannelPage();
+}
+
+function applyMuteSoloState(send) {
+  const count = parseInt(document.getElementById('cfgChan')?.value) || 24;
+  for (let ch = 0; ch < count; ch++) {
+    applyFader(ch);
+    if (send) {
+      const eff = getEffectiveChannelValue(ch);
+      sendOSC(`/eos/chan/${ch+1}/param/intens`, +(eff/100).toFixed(3));
+    }
+  }
+  refreshChannelPage();
 }
 
 function setupVFader(ch) {
@@ -982,8 +1089,7 @@ function setupVFader(ch) {
     const rect=vf.getBoundingClientRect();
     const dy=startY-getY(e);
     const v=Math.max(0,Math.min(100,startVal+Math.round(dy/rect.height*100)));
-    chanVals[ch]=v; applyFader(ch);
-    if(document.getElementById('cfgLive')?.checked) sendOSC(`/eos/chan/${ch+1}/param/intens`,+(v/100).toFixed(3));
+    setChannelValue(ch,v,{send:!!document.getElementById('cfgLive')?.checked});
     e.preventDefault();
   }
   function end() {
@@ -991,11 +1097,11 @@ function setupVFader(ch) {
     knob.classList.remove('act');
     document.removeEventListener('mousemove',move); document.removeEventListener('touchmove',move);
     document.removeEventListener('mouseup',end); document.removeEventListener('touchend',end); document.removeEventListener('touchcancel',end);
-    sendOSC(`/eos/chan/${ch+1}/param/intens`,+(chanVals[ch]/100).toFixed(3));
+    setChannelValue(ch,chanVals[ch],{send:true});
   }
   knob.addEventListener('mousedown',start);
   knob.addEventListener('touchstart',start,{passive:false});
-  knob.addEventListener('dblclick',()=>{ chanVals[ch]=0; applyFader(ch); sendOSC(`/eos/chan/${ch+1}/param/intens`,0); });
+  knob.addEventListener('dblclick',()=>setChannelValue(ch,0,{send:true}));
 }
 
 function updateVU(ch,val) {
@@ -1009,8 +1115,8 @@ function flashCh(e,ch) {
   e.preventDefault();
   const btn=document.getElementById(`fl-${ch}`); if(!btn||btn.classList.contains('on')) return;
   btn.classList.add('on'); const old=chanVals[ch];
-  chanVals[ch]=100; applyFader(ch); sendOSC(`/eos/chan/${ch+1}/param/intens`,1.0);
-  setTimeout(()=>{ btn.classList.remove('on'); chanVals[ch]=old; applyFader(ch); sendOSC(`/eos/chan/${ch+1}/param/intens`,+(old/100).toFixed(3)); },180);
+  setChannelValue(ch,100,{send:true});
+  setTimeout(()=>{ btn.classList.remove('on'); setChannelValue(ch,old,{send:true}); },180);
 }
 
 const CH_COLORS=['#fff8e0','#ffd080','#e84040','#4080ff','#60e070','#8020ff','#20d8cc','#ff60c0'];
@@ -1022,6 +1128,118 @@ function changeBank(off,btn) {
   document.querySelectorAll('.bkbtn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   buildFaders();
+}
+
+/* ══ CHANNEL PAGES ══ */
+function buildChannelPages() {
+  const nav=document.getElementById('channelPageNav'); if(!nav) return;
+  const count=parseInt(document.getElementById('cfgChan')?.value)||24;
+  nav.innerHTML='';
+  for(let i=0;i<count;i++) {
+    const b=document.createElement('button');
+    b.className='btn-cp'+(selectedChannel===i?' active':'');
+    b.textContent=String(i+1);
+    b.onclick=()=>selectChannelPage(i);
+    nav.appendChild(b);
+  }
+  refreshChannelPage();
+}
+
+function selectChannelPage(ch) {
+  selectedChannel=ch;
+  document.querySelectorAll('.btn-cp').forEach((b,i)=>b.classList.toggle('active',i===ch));
+  refreshChannelPage();
+}
+
+function refreshChannelPage() {
+  const name=document.getElementById('cpName');
+  const sub=document.getElementById('cpSub');
+  const live=document.getElementById('cpLive');
+  const label=document.getElementById('cpLabel');
+  const mbtn=document.getElementById('cpMuteBtn');
+  const sbtn=document.getElementById('cpSoloBtn');
+  if(!name||!sub||!live||!label||!mbtn||!sbtn) return;
+  const ch=selectedChannel;
+  const lbl=chanLabels[ch]||CHAN_NAMES[ch]||`CH ${ch+1}`;
+  const eff=getEffectiveChannelValue(ch);
+  name.textContent=`CH ${ch+1} · ${lbl}`;
+  sub.textContent='INDIVIDUAL CHANNEL PAGE';
+  live.textContent=(chanMuted[ch]?'MUTE · ':'')+eff+'%';
+  label.value=chanLabels[ch]||'';
+  mbtn.classList.toggle('on',!!chanMuted[ch]);
+  sbtn.classList.toggle('on',soloChan===ch);
+}
+
+function setSelectedChannelValue(v) {
+  setChannelValue(selectedChannel,v,{send:true});
+}
+
+function nudgeChannel(delta) {
+  setChannelValue(selectedChannel,chanVals[selectedChannel]+delta,{send:true});
+}
+
+function saveChannelLabel() {
+  const inp=document.getElementById('cpLabel'); if(!inp) return;
+  chanLabels[selectedChannel]=(inp.value||'').trim();
+  buildFaders();
+  buildChannelPages();
+}
+
+function toggleChannelMute() {
+  chanMuted[selectedChannel]=!chanMuted[selectedChannel];
+  applyMuteSoloState(true);
+}
+
+function toggleChannelSolo() {
+  soloChan = soloChan===selectedChannel ? -1 : selectedChannel;
+  applyMuteSoloState(true);
+}
+
+function runChannelFade() {
+  const targetEl=document.getElementById('cpFadeTarget');
+  const timeEl=document.getElementById('cpFadeTime');
+  if(!targetEl||!timeEl) return;
+  const target=Math.max(0,Math.min(100,parseInt(targetEl.value)||0));
+  const secs=Math.max(0,parseFloat(timeEl.value)||0);
+  if(channelFadeTimer) { clearInterval(channelFadeTimer); channelFadeTimer=null; }
+  if(secs===0) { setChannelValue(selectedChannel,target,{send:true}); return; }
+  const start=chanVals[selectedChannel];
+  const totalSteps=Math.max(1,Math.round(secs*20));
+  let step=0;
+  channelFadeTimer=setInterval(()=>{
+    step++;
+    const t=step/totalSteps;
+    const cur=Math.round(start+(target-start)*t);
+    setChannelValue(selectedChannel,cur,{send:true});
+    if(step>=totalSteps){ clearInterval(channelFadeTimer); channelFadeTimer=null; }
+  },50);
+}
+
+function copySelectedToNext() {
+  const count=parseInt(document.getElementById('cfgChan')?.value)||24;
+  const next=Math.min(selectedChannel+1,count-1);
+  if(next===selectedChannel) return;
+  setChannelValue(next,chanVals[selectedChannel],{send:true});
+  chanLabels[next]=chanLabels[selectedChannel]||chanLabels[next];
+  buildFaders();
+  buildChannelPages();
+}
+
+function clearChannelStates() {
+  for(let i=0;i<chanMuted.length;i++) chanMuted[i]=false;
+  soloChan=-1;
+  applyMuteSoloState(true);
+}
+
+function onChannelCountChange() {
+  const cfg=document.getElementById('cfgChan');
+  if(!cfg) return;
+  const count=Math.max(1,Math.min(48,parseInt(cfg.value)||24));
+  cfg.value=String(count);
+  if(bankOff>=count) bankOff=Math.max(0,count-12);
+  if(selectedChannel>=count) selectedChannel=count-1;
+  buildFaders();
+  buildChannelPages();
 }
 
 /* ══ GRAND MASTER ══ */
@@ -1329,9 +1547,11 @@ function showTab(name,btn) {
 
 /* ══ INIT ══ */
 function initApp() {
-  [75,60,45,45,80,20,35,35,55,70,70,0,50,40,0,0,60,60,30,30,0,0,80,80].forEach((v,i)=>chanVals[i]=v);
+  [75,60,45,45,80,20,35,35,55,70,70,0,50,40,0,0,60,60,30,30,0,0,80,80].forEach((v,i)=>setChannelValue(i,v,{send:false}));
+  for(let i=0;i<chanLabels.length;i++) chanLabels[i]=CHAN_NAMES[i]||'';
   buildCueNums();
   buildFaders();
+  buildChannelPages();
   setupGMFader();
   buildMacros();
   initMovers();
