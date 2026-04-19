@@ -576,7 +576,7 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
   <nav class="tabs">
     <button class="tab active" onclick="showTab('channels',this)">Channels</button>
     <button class="tab" onclick="showTab('channel-pages',this)">Channel Pages</button>
-    <button class="tab" onclick="showTab('movers',this)">Movers</button>
+    <button class="tab" onclick="showTab('movers',this)">Channel Config</button>
     <button class="tab" onclick="showTab('cues',this)">Cues</button>
     <button class="tab" id="tab-settings" onclick="showTab('settings',this)">Settings</button>
   </nav>
@@ -677,28 +677,62 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
       </div>
     </div>
 
-    <!-- MOVERS -->
+    <!-- CHANNEL CONFIG -->
     <div class="page" id="page-movers">
       <div class="card" style="padding:9px 12px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div class="ctitle" style="margin:0;">Moving Fixtures</div>
+          <div class="ctitle" style="margin:0;">Channel List</div>
           <div style="display:flex; gap:5px;">
-            <button class="btn-qa" onclick="selectAllMovers()">SEL ALL</button>
-            <button class="btn-qa bl" onclick="homeAllMovers()">HOME ALL</button>
+            <button class="btn-qa" onclick="buildChannelConfigList()">REFRESH</button>
+            <button class="btn-qa bl" onclick="selectConfigChannel(selectedChannel)">OPEN SELECTED</button>
           </div>
         </div>
       </div>
-      <div class="mover-grid" id="moverGrid"></div>
+      <div class="card">
+        <div class="cue-list" id="channelConfigList"></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Selected Channel Settings</div>
+        <div class="frow"><span class="flbl">Channel</span><span id="cfgSelChan" class="finput" style="display:inline-flex;align-items:center;">1</span></div>
+        <div class="frow"><span class="flbl">Label</span><input class="finput" id="cfgSelLabel" type="text" maxlength="18"></div>
+        <div class="frow"><span class="flbl">Type</span>
+          <select class="finput" id="cfgSelType" onchange="onSelectedProfileChange()">
+            <option value="spot">Spot (Intensity)</option>
+            <option value="wash">Color Wash (Intensity+RGB)</option>
+          </select>
+        </div>
+        <div class="frow"><span class="flbl">Intensity</span><input class="finput" id="cfgSelIntens" type="number" min="0" max="100"></div>
+        <div id="cfgRgbWrap">
+          <div class="frow"><span class="flbl">Red</span><input class="finput" id="cfgSelR" type="number" min="0" max="100"></div>
+          <div class="frow"><span class="flbl">Green</span><input class="finput" id="cfgSelG" type="number" min="0" max="100"></div>
+          <div class="frow"><span class="flbl">Blue</span><input class="finput" id="cfgSelB" type="number" min="0" max="100"></div>
+        </div>
+        <div style="display:flex; gap:6px; margin-top:4px;">
+          <button class="btn-qa gr" onclick="saveSelectedChannelConfig()">SAVE CHANNEL</button>
+          <button class="btn-qa bl" onclick="sendSelectedChannelNow()">SEND NOW</button>
+        </div>
+      </div>
     </div>
 
     <!-- CUES -->
     <div class="page" id="page-cues">
       <div class="card" style="padding:9px 12px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div class="ctitle" style="margin:0;">Cue List</div>
+          <div class="ctitle" style="margin:0;">Cue Sets</div>
           <div style="display:flex; gap:5px;">
-            <button class="btn-qa bl" onclick="sendOSC('/eos/newcue',1)">NEW CUE</button>
-            <button class="btn-qa" onclick="sendOSC('/eos/record',1)">RECORD</button>
+            <select class="finput" id="cueSetSelect" onchange="switchCueSet()" style="max-width:220px;"></select>
+            <input class="finput" id="newCueSetName" type="text" placeholder="New cue set" style="max-width:160px;">
+            <button class="btn-qa bl" onclick="addCueSet()">ADD SET</button>
+            <button class="btn-qa rd" onclick="removeCueSet()">DEL SET</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="padding:9px 12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="ctitle" style="margin:0;">Cues In Set</div>
+          <div style="display:flex; gap:5px;">
+            <button class="btn-qa bl" onclick="addCueToActiveSet()">ADD CUE</button>
+            <button class="btn-qa" onclick="duplicateCurrentCue()">DUP CUE</button>
           </div>
         </div>
       </div>
@@ -720,15 +754,22 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
           </div>
         </div>
         <div class="card">
-          <div class="ctitle">Fixture Config</div>
+          <div class="ctitle">Channel Layout</div>
           <div class="frow"><span class="flbl">Channels</span><input class="finput" id="cfgChan" type="number" value="24" style="width:60px;flex:none;" onchange="onChannelCountChange()"></div>
-          <div class="frow"><span class="flbl">Movers</span><input class="finput" id="cfgMovers" type="number" value="6" style="width:60px;flex:none;" onchange="rebuildMovers()"></div>
-          <div class="frow"><span class="flbl">Cues</span><input class="finput" id="cfgCues" type="number" value="20" style="width:60px;flex:none;" onchange="buildCueList()"></div>
+          <div class="frow"><span class="flbl">Spot Count</span><input class="finput" id="cfgSpotCount" type="number" value="8" style="width:60px;flex:none;"></div>
+          <div class="frow"><span class="flbl">Wash Count</span><input class="finput" id="cfgWashCount" type="number" value="8" style="width:60px;flex:none;"></div>
+          <div class="frow"><span class="flbl">Apply Types</span><button class="btn-qa bl" onclick="applyChannelLayoutPreset()">APPLY</button></div>
           <div class="frow"><span class="flbl">Send Live</span><label class="toggle"><input type="checkbox" id="cfgLive" checked><span class="tsl"></span></label></div>
         </div>
         <div class="card">
           <div class="ctitle">OSC Path Reference</div>
           <div id="oscRef"></div>
+        </div>
+        <div class="card">
+          <div class="ctitle">Data</div>
+          <div class="frow"><span class="flbl">Cookies</span><button class="btn-qa bl" onclick="saveStateCookie()">SAVE NOW</button></div>
+          <div class="frow"><span class="flbl">Export</span><button class="btn-qa" onclick="exportStateJSON()">DOWNLOAD JSON</button></div>
+          <div class="frow"><span class="flbl">Import</span><input class="finput" id="importJsonFile" type="file" accept="application/json" onchange="importStateJSON(event)"></div>
         </div>
       </div>
       <div class="card">
@@ -754,27 +795,35 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
 /* ══════════════════════════════════════════
    STATE
 ══════════════════════════════════════════ */
-let ws = null, oscConn = false, curCue = 1, bankOff = 0, boOn = false, gmVal = 100;
+let ws = null, oscConn = false, curCue = '1.00', curCueIndex = 0, bankOff = 0, boOn = false, gmVal = 100;
 const chanVals = new Array(48).fill(0);
 const chanClrs = new Array(48).fill(0);
 const chanLabels = new Array(48).fill('');
 const chanMuted = new Array(48).fill(false);
+const chanProfiles = new Array(48).fill('spot');
+const chanColors = Array.from({length:48}, () => ({r:0,g:0,b:0}));
 const macroOn  = new Array(12).fill(false);
-const moverState = [];
 let soloChan = -1;
 let selectedChannel = 0;
 let channelFadeTimer = null;
+let saveDebounce = null;
+let activeCueSet = 0;
+let cueSets = [
+  {
+    name: 'Main',
+    cues: [
+      { number:'1.00', name:'Preshow', time:'3.0' },
+      { number:'10.00', name:'Act 1 Open', time:'2.0' },
+      { number:'10.25', name:'Song 1', time:'1.5' },
+      { number:'10.50', name:'Scene Change', time:'2.5' },
+      { number:'11.00', name:'Finale', time:'3.0' }
+    ]
+  }
+];
 
 const CHAN_NAMES = ['SPOT 1','SPOT 2','SPOT 3','WASH L','WASH R','WASH C','FRONT L','FRONT R','BACK L','BACK R','CYCO','SPEC 1','SPEC 2','SPEC 3','FOOT L','FOOT R','SHIN L','SHIN R','FLOOR 1','FLOOR 2','STROBE','FOG','SPOT 4','SPOT 5','CH 25','CH 26','CH 27','CH 28','CH 29','CH 30','CH 31','CH 32','CH 33','CH 34','CH 35','CH 36'];
 const MACRO_LABELS = ['ACT 1','ACT 2','CHASE','STROB','SNAP','FADE','BLK IN','BLK OUT','RESET','HOUSE','WORK','PRESET'];
-const MOVER_NAMES  = ['SPOT A','SPOT B','SPOT C','SPOT D','WASH A','WASH B','SPOT E','SPOT F'];
-const MOVER_MODELS = ['MAC Viper','Robe BMFL','Mac Ultra','Claypaky Xtylos','GLP JDC1','Robe PAINTE','ETC Lustr+','Chroma-Q'];
-const MOVER_TYPES  = ['SPOT','SPOT','SPOT','SPOT','WASH','WASH','SPOT','SPOT'];
-const GOBO_LABELS  = ['OPEN','G1','G2','G3','G4','SPLIT','PRISM','FROST'];
-const COLOR_PRESETS = [{name:'Open',hex:'#fff8e0'},{name:'CTB',hex:'#a0c8ff'},{name:'R68',hex:'#e84040'},{name:'R79',hex:'#ff9020'},{name:'R21',hex:'#4080ff'},{name:'G345',hex:'#60e070'},{name:'L201',hex:'#ffe060'},{name:'UV',hex:'#8020ff'}];
 const OSC_PATHS = [{path:'/eos/go',type:'f',desc:'Trigger GO'},{path:'/eos/stop',type:'f',desc:'Stop'},{path:'/eos/back',type:'f',desc:'Back'},{path:'/eos/cue/{n}/fire',type:'f',desc:'Fire cue N'},{path:'/eos/chan/{n}/param/intens',type:'f',desc:'Intensity 0-1'},{path:'/eos/chan/{n}/param/pan',type:'f',desc:'Pan 0-1'},{path:'/eos/chan/{n}/param/tilt',type:'f',desc:'Tilt 0-1'},{path:'/eos/chan/{n}/param/color/hue',type:'f',desc:'Hue 0-1'},{path:'/eos/chan/{n}/param/gobo',type:'i',desc:'Gobo index'},{path:'/eos/grandmaster',type:'f',desc:'Grand master'},{path:'/eos/blackout',type:'i',desc:'Blackout 0/1'},{path:'/eos/macro/{n}/fire',type:'f',desc:'Fire macro N'}];
-const CUE_NAMES = ['Preshow','Act 1 Open','Song 1','Monologue','Song 2','Scene Change','Act 2','Climax','Finale','Curtain','House Full','Work Light'];
-const CUE_TIMES = ['3.0','2.0','1.5','0.5','2.0','4.0','2.5','1.0','3.0','2.0','5.0','0.3'];
 
 /* ══ SETUP WIZARD ══ */
 let setupStep = 0;
@@ -947,24 +996,142 @@ function triggerGo() {
   sendOSC('/eos/go', 1.0);
   const btn = document.getElementById('btnGoB');
   if (btn) { btn.classList.add('flash'); setTimeout(()=>btn.classList.remove('flash'),220); }
-  curCue = Math.min(curCue+1,50);
+  const cues = getActiveCueSet().cues;
+  if (cues.length) {
+    curCueIndex = Math.min(curCueIndex + 1, cues.length - 1);
+    curCue = cues[curCueIndex].number;
+  }
   setCueDisp(); highlightCue();
 }
 function triggerStop() { sendOSC('/eos/stop',1.0); setCueDisp('STOP'); }
-function triggerBack() { sendOSC('/eos/back',1.0); curCue=Math.max(1,curCue-1); setCueDisp(); highlightCue(); }
-function selectCue(n) { curCue=n; sendOSC(`/eos/cue/${n}/fire`,1.0); setCueDisp(); highlightCue(); }
+function triggerBack() {
+  sendOSC('/eos/back',1.0);
+  const cues = getActiveCueSet().cues;
+  if (cues.length) {
+    curCueIndex = Math.max(0, curCueIndex - 1);
+    curCue = cues[curCueIndex].number;
+  }
+  setCueDisp(); highlightCue();
+}
+function selectCue(cueNum) {
+  curCue = String(cueNum);
+  const cues = getActiveCueSet().cues;
+  const idx = cues.findIndex(c => c.number === curCue);
+  if (idx >= 0) curCueIndex = idx;
+  sendOSC(`/eos/cue/${curCue}/fire`,1.0);
+  setCueDisp();
+  highlightCue();
+  queueSaveState();
+}
 function setCueDisp(sfx) {
-  const t = `CUE ${curCue}.0 — ${sfx||'READY'}`;
+  const t = `CUE ${curCue} — ${sfx||'READY'}`;
   const h=document.getElementById('hdrCue'), b=document.getElementById('bbarCue');
   if(h) h.textContent=t; if(b) b.textContent=`Q ${curCue}`;
 }
 function highlightCue() {
-  document.querySelectorAll('.btn-cue').forEach((b,i) => b.classList.toggle('active',i+1===curCue));
-  document.querySelectorAll('.cue-row').forEach((r,i) => {
-    r.classList.toggle('active',i+1===curCue);
-    const s=r.querySelector('.cue-st');
-    if(s){s.textContent=i+1===curCue?'ACTIVE':''; s.style.color=i+1===curCue?'var(--green)':'';}
+  document.querySelectorAll('.btn-cue').forEach((b,i) => {
+    const c = getActiveCueSet().cues[i];
+    b.classList.toggle('active', !!c && c.number === curCue);
   });
+  document.querySelectorAll('.cue-row').forEach((r) => {
+    const num = r.getAttribute('data-cue-number') || '';
+    r.classList.toggle('active', num === curCue);
+    const s=r.querySelector('.cue-st');
+    if(s){s.textContent=num===curCue?'ACTIVE':''; s.style.color=num===curCue?'var(--green)':'';}
+  });
+}
+function getActiveCueSet() {
+  if (!cueSets.length) cueSets = [{ name:'Main', cues:[{ number:'1.00', name:'Cue 1', time:'2.0' }] }];
+  activeCueSet = Math.max(0, Math.min(activeCueSet, cueSets.length - 1));
+  return cueSets[activeCueSet];
+}
+
+function buildCueSetSelector() {
+  const sel = document.getElementById('cueSetSelect');
+  if (!sel) return;
+  sel.innerHTML = '';
+  cueSets.forEach((s, i) => {
+    const o = document.createElement('option');
+    o.value = String(i);
+    o.textContent = `${i+1}. ${s.name}`;
+    sel.appendChild(o);
+  });
+  sel.value = String(activeCueSet);
+}
+
+function switchCueSet() {
+  const sel = document.getElementById('cueSetSelect');
+  if (!sel) return;
+  activeCueSet = Math.max(0, Math.min(cueSets.length - 1, parseInt(sel.value) || 0));
+  const cues = getActiveCueSet().cues;
+  if (cues.length) {
+    curCueIndex = 0;
+    curCue = cues[0].number;
+  }
+  buildCueList();
+  buildCueNums();
+  setCueDisp();
+  queueSaveState();
+}
+
+function addCueSet() {
+  const inp = document.getElementById('newCueSetName');
+  const name = (inp?.value || '').trim() || `Cue Set ${cueSets.length + 1}`;
+  cueSets.push({ name, cues: [{ number:'1.00', name:'Cue 1', time:'2.0' }] });
+  activeCueSet = cueSets.length - 1;
+  if (inp) inp.value = '';
+  buildCueSetSelector();
+  switchCueSet();
+}
+
+function removeCueSet() {
+  if (cueSets.length <= 1) return;
+  cueSets.splice(activeCueSet, 1);
+  activeCueSet = Math.max(0, activeCueSet - 1);
+  buildCueSetSelector();
+  switchCueSet();
+}
+
+function addCueToActiveSet() {
+  const set = getActiveCueSet();
+  const nextNum = (set.cues.length + 1).toFixed(2);
+  set.cues.push({ number: nextNum, name: `Cue ${nextNum}`, time: '2.0' });
+  buildCueList();
+  buildCueNums();
+  queueSaveState();
+}
+
+function duplicateCurrentCue() {
+  const set = getActiveCueSet();
+  const src = set.cues[curCueIndex] || set.cues[0];
+  if (!src) return;
+  set.cues.splice(curCueIndex + 1, 0, { number: src.number, name: src.name + ' Copy', time: src.time });
+  buildCueList();
+  buildCueNums();
+  queueSaveState();
+}
+
+function updateCueField(index, field, value) {
+  const set = getActiveCueSet();
+  if (!set.cues[index]) return;
+  set.cues[index][field] = value;
+  if (field === 'number' && curCueIndex === index) curCue = value;
+  buildCueNums();
+  highlightCue();
+  setCueDisp();
+  queueSaveState();
+}
+
+function deleteCue(index) {
+  const set = getActiveCueSet();
+  if (set.cues.length <= 1) return;
+  set.cues.splice(index, 1);
+  curCueIndex = Math.max(0, Math.min(curCueIndex, set.cues.length - 1));
+  curCue = set.cues[curCueIndex].number;
+  buildCueList();
+  buildCueNums();
+  setCueDisp();
+  queueSaveState();
 }
 function homeAll() {
   [75,60,45,45,80,20,35,35,55,70,70,0].forEach((v,i)=>setChannelValue(i,v,{send:false}));
@@ -981,12 +1148,14 @@ function toggleBlackout() {
 /* ══ CHANNEL FADERS ══ */
 function buildCueNums() {
   const el=document.getElementById('cueNums'); if(!el) return; el.innerHTML='';
-  for(let i=1;i<=16;i++){
+  const cues = getActiveCueSet().cues.slice(0,16);
+  cues.forEach((cue) => {
     const b=document.createElement('button');
-    b.className='btn-cue'+(i===curCue?' active':'');
-    b.textContent=`Q${i}`; b.onclick=()=>selectCue(i);
+    b.className='btn-cue'+(cue.number===curCue?' active':'');
+    b.textContent=`Q${cue.number}`;
+    b.onclick=()=>selectCue(cue.number);
     el.appendChild(b);
-  }
+  });
 }
 
 function buildFaders() {
@@ -1039,6 +1208,7 @@ function getEffectiveChannelValue(ch) {
 function setChannelValue(ch, val, opts) {
   const o = opts || {};
   const send = o.send !== false;
+  const persist = o.persist !== false;
   const n = Math.max(0, Math.min(100, Math.round(val)));
   chanVals[ch] = n;
   applyFader(ch);
@@ -1047,6 +1217,7 @@ function setChannelValue(ch, val, opts) {
     sendOSC(`/eos/chan/${ch+1}/param/intens`, +(eff/100).toFixed(3));
   }
   refreshChannelPage();
+  if (persist) queueSaveState();
 }
 
 function applyMuteSoloState(send) {
@@ -1183,6 +1354,8 @@ function saveChannelLabel() {
   chanLabels[selectedChannel]=(inp.value||'').trim();
   buildFaders();
   buildChannelPages();
+  buildChannelConfigList();
+  queueSaveState();
 }
 
 function toggleChannelMute() {
@@ -1240,6 +1413,121 @@ function onChannelCountChange() {
   if(selectedChannel>=count) selectedChannel=count-1;
   buildFaders();
   buildChannelPages();
+  buildChannelConfigList();
+  buildCueList();
+  queueSaveState();
+}
+
+function queueSaveState() {
+  if (saveDebounce) clearTimeout(saveDebounce);
+  saveDebounce = setTimeout(() => saveStateCookie(), 250);
+}
+
+function getSerializableState() {
+  return {
+    chanVals,
+    chanLabels,
+    chanMuted,
+    chanProfiles,
+    chanColors,
+    cueSets,
+    activeCueSet,
+    curCue,
+    curCueIndex,
+    selectedChannel,
+    soloChan,
+    cfgChan: parseInt(document.getElementById('cfgChan')?.value) || 24,
+    cfgSpotCount: parseInt(document.getElementById('cfgSpotCount')?.value) || 8,
+    cfgWashCount: parseInt(document.getElementById('cfgWashCount')?.value) || 8,
+  };
+}
+
+function applySerializableState(state) {
+  if (!state || typeof state !== 'object') return;
+  if (Array.isArray(state.chanVals)) state.chanVals.slice(0,48).forEach((v,i)=>chanVals[i]=Math.max(0,Math.min(100,parseInt(v)||0)));
+  if (Array.isArray(state.chanLabels)) state.chanLabels.slice(0,48).forEach((v,i)=>chanLabels[i]=String(v||''));
+  if (Array.isArray(state.chanMuted)) state.chanMuted.slice(0,48).forEach((v,i)=>chanMuted[i]=!!v);
+  if (Array.isArray(state.chanProfiles)) state.chanProfiles.slice(0,48).forEach((v,i)=>chanProfiles[i]=v==='wash'?'wash':'spot');
+  if (Array.isArray(state.chanColors)) state.chanColors.slice(0,48).forEach((v,i)=>{
+    const c=v||{};
+    chanColors[i]={r:Math.max(0,Math.min(100,parseInt(c.r)||0)),g:Math.max(0,Math.min(100,parseInt(c.g)||0)),b:Math.max(0,Math.min(100,parseInt(c.b)||0))};
+  });
+  if (Array.isArray(state.cueSets) && state.cueSets.length) {
+    cueSets = state.cueSets.map((s) => ({
+      name: String(s.name || 'Cue Set'),
+      cues: Array.isArray(s.cues) && s.cues.length ? s.cues.map((c) => ({
+        number: String(c.number || '1.00'),
+        name: String(c.name || 'Cue'),
+        time: String(c.time || '2.0')
+      })) : [{ number:'1.00', name:'Cue 1', time:'2.0' }]
+    }));
+  }
+  activeCueSet = Math.max(0, Math.min(cueSets.length - 1, parseInt(state.activeCueSet) || 0));
+  curCue = String(state.curCue || curCue);
+  curCueIndex = Math.max(0, parseInt(state.curCueIndex) || 0);
+  selectedChannel = Math.max(0, Math.min(47, parseInt(state.selectedChannel) || 0));
+  soloChan = parseInt(state.soloChan);
+  if (Number.isNaN(soloChan)) soloChan = -1;
+  const cfgChan = Math.max(1,Math.min(48,parseInt(state.cfgChan)||24));
+  const cfgSpot = Math.max(0,parseInt(state.cfgSpotCount)||8);
+  const cfgWash = Math.max(0,parseInt(state.cfgWashCount)||8);
+  const cfgChanEl = document.getElementById('cfgChan'); if (cfgChanEl) cfgChanEl.value = String(cfgChan);
+  const cfgSpotEl = document.getElementById('cfgSpotCount'); if (cfgSpotEl) cfgSpotEl.value = String(cfgSpot);
+  const cfgWashEl = document.getElementById('cfgWashCount'); if (cfgWashEl) cfgWashEl.value = String(cfgWash);
+}
+
+function saveStateCookie() {
+  const enc = encodeURIComponent(JSON.stringify(getSerializableState()));
+  document.cookie = `etcControlState=${enc}; path=/; max-age=31536000; SameSite=Lax`;
+}
+
+function loadStateCookie() {
+  const raw = document.cookie.split('; ').find(r => r.startsWith('etcControlState='));
+  if (!raw) return;
+  try {
+    const obj = JSON.parse(decodeURIComponent(raw.split('=').slice(1).join('=')));
+    applySerializableState(obj);
+  } catch (_) {}
+}
+
+function exportStateJSON() {
+  const blob = new Blob([JSON.stringify(getSerializableState(), null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'etc-control-state.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importStateJSON(e) {
+  const file = e?.target?.files?.[0];
+  if (!file) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const obj = JSON.parse(String(fr.result || '{}'));
+      applySerializableState(obj);
+      rebuildFromState();
+      saveStateCookie();
+    } catch (err) {
+      logOSC('err', '', 'Import failed: ' + err.message);
+    }
+  };
+  fr.readAsText(file);
+}
+
+function rebuildFromState() {
+  onChannelCountChange();
+  buildCueSetSelector();
+  buildCueList();
+  buildCueNums();
+  buildChannelConfigList();
+  selectConfigChannel(selectedChannel);
+  setCueDisp();
+  highlightCue();
 }
 
 /* ══ GRAND MASTER ══ */
@@ -1291,244 +1579,117 @@ function buildMacros() {
   });
 }
 
-/* ══ ENCODER SVG — pure math ══ */
-const ES=50,EX=25,EY=25,ER=18;
-const EA=135*Math.PI/180;  // start angle
-const EW=270*Math.PI/180;  // sweep
-
-function encSVG(val,color) {
-  const ang = EA + val*EW;
-  // Track full arc end
-  const tEnd=EA+EW, tX2=EX+Math.cos(tEnd)*ER, tY2=EY+Math.sin(tEnd)*ER;
-  const aX1=EX+Math.cos(EA)*ER, aY1=EY+Math.sin(EA)*ER;
-  // Filled arc end
-  const aX2=EX+Math.cos(ang)*ER, aY2=EY+Math.sin(ang)*ER;
-  const large=(val*EW)>Math.PI?1:0;
-  // Indicator line (inner 8px → outer ER-3)
-  const lx1=EX+Math.cos(ang)*8, ly1=EY+Math.sin(ang)*8;
-  const lx2=EX+Math.cos(ang)*(ER-3), ly2=EY+Math.sin(ang)*(ER-3);
-
-  return `<svg width="${ES}" height="${ES}" viewBox="0 0 ${ES} ${ES}">
-    <path d="M ${aX1} ${aY1} A ${ER} ${ER} 0 1 1 ${tX2} ${tY2}" fill="none" stroke="var(--b2)" stroke-width="3" stroke-linecap="round"/>
-    ${val>0.005?`<path d="M ${aX1} ${aY1} A ${ER} ${ER} 0 ${large} 1 ${aX2} ${aY2}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" style="filter:drop-shadow(0 0 3px ${color})"/>`:''}
-    <circle cx="${EX}" cy="${EY}" r="12" fill="var(--panel2)" stroke="var(--b2)" stroke-width="1.5"/>
-    <line x1="${lx1}" y1="${ly1}" x2="${lx2}" y2="${ly2}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>
-    <circle cx="${EX}" cy="${EY}" r="2.5" fill="${color}" opacity="0.85"/>
-  </svg>`;
-}
-
-function makeEnc(mi,param,label,val,color) {
-  return `<div class="enc-group">
-    <div class="enc-wrap" id="ew-${mi}-${param}" data-val="${val}" data-color="${color}">${encSVG(val,color)}</div>
-    <div class="enc-val" style="color:${color}" id="ev-${mi}-${param}">${Math.round(val*100)}%</div>
-    <div class="enc-lbl">${label}</div>
-  </div>`;
-}
-
-function redrawEnc(mi,param,val) {
-  const wrap=document.getElementById(`ew-${mi}-${param}`); if(!wrap) return;
-  const color=wrap.dataset.color;
-  wrap.innerHTML=encSVG(val,color);
-  wrap.dataset.val=val;
-  const v=document.getElementById(`ev-${mi}-${param}`); if(v) v.textContent=Math.round(val*100)+'%';
-}
-
-/* ══ ENCODER DRAG — touch-bulletproof ══ */
-function setupEncoders(mi) {
-  const PARAMS=[
-    {param:'intens',color:'var(--amber)'},{param:'zoom',color:'var(--blue)'},
-    {param:'focus',color:'var(--green)'},{param:'iris',color:'var(--cyan)'},
-    {param:'speed',color:'var(--purple)'},{param:'strobe',color:'var(--red)'},
-  ];
-  PARAMS.forEach(({param,color})=>{
-    const wrap=document.getElementById(`ew-${mi}-${param}`); if(!wrap) return;
-    wrap.style.touchAction='none';
-    wrap.style.userSelect='none';
-    wrap.style.webkitUserSelect='none';
-
-    let drag=false,startY,startVal,tid=null;
-
-    function getY(e) {
-      if(e.touches)        { for(const t of e.touches)        if(t.identifier===tid) return t.clientY; return e.touches[0]?.clientY??startY; }
-      if(e.changedTouches) { for(const t of e.changedTouches) if(t.identifier===tid) return t.clientY; return e.changedTouches[0]?.clientY??startY; }
-      return e.clientY;
-    }
-
-    function onStart(e) {
-      drag=true;
-      tid=e.touches?e.touches[0].identifier:null;
-      startY=getY(e);
-      startVal=parseFloat(wrap.dataset.val)||0;
-      document.addEventListener('mousemove',onMove,{passive:false});
-      document.addEventListener('touchmove',onMove,{passive:false});
-      document.addEventListener('mouseup',onEnd);
-      document.addEventListener('touchend',onEnd);
-      document.addEventListener('touchcancel',onEnd);
-      e.preventDefault(); e.stopPropagation();
-    }
-
-    function onMove(e) {
-      if(!drag) return;
-      // 90px full range — feels natural under a thumb
-      const v=Math.max(0,Math.min(1,startVal+(startY-getY(e))/90));
-      moverState[mi][param]=v;
-      redrawEnc(mi,param,v);
-      if(document.getElementById('cfgLive')?.checked) sendOSC(`/eos/chan/${mi+25}/param/${param}`,+v.toFixed(3));
-      e.preventDefault();
-    }
-
-    function onEnd() {
-      if(!drag) return;
-      drag=false; tid=null;
-      document.removeEventListener('mousemove',onMove); document.removeEventListener('touchmove',onMove);
-      document.removeEventListener('mouseup',onEnd); document.removeEventListener('touchend',onEnd); document.removeEventListener('touchcancel',onEnd);
-      sendOSC(`/eos/chan/${mi+25}/param/${param}`,+moverState[mi][param].toFixed(3));
-    }
-
-    wrap.addEventListener('mousedown',onStart);
-    wrap.addEventListener('touchstart',onStart,{passive:false});
-    wrap.addEventListener('wheel',(e)=>{
-      const v=Math.max(0,Math.min(1,parseFloat(wrap.dataset.val)+(e.deltaY<0?0.025:-0.025)));
-      moverState[mi][param]=v; redrawEnc(mi,param,v);
-      sendOSC(`/eos/chan/${mi+25}/param/${param}`,+v.toFixed(3)); e.preventDefault();
-    },{passive:false});
-  });
-}
-
-/* ══ MOVERS ══ */
-function initMovers() {
-  const count=parseInt(document.getElementById('cfgMovers')?.value)||6;
-  moverState.length=0;
-  for(let i=0;i<count;i++) moverState.push({pan:0.5,tilt:0.5,intens:0.8,zoom:0.5,focus:0.5,iris:0.8,speed:0.5,strobe:0,color:0,gobo:0});
-}
-
-function buildMovers() {
-  const grid=document.getElementById('moverGrid'); if(!grid) return; grid.innerHTML='';
-  moverState.forEach((fx,i)=>{
-    const type=MOVER_TYPES[i]||'SPOT';
-    const card=document.createElement('div');
-    card.className='mover-card'; card.id=`mc-${i}`;
-    card.innerHTML=`
-      <div class="mover-hdr">
-        <div>
-          <div class="mover-name">CH ${i+25} · ${MOVER_NAMES[i]||'MOVER '+(i+1)}</div>
-          <div class="mover-mdl">${MOVER_MODELS[i]||'Moving Head'}</div>
-        </div>
-        <span class="badge ${type==='WASH'?'badge-w':'badge-s'}">${type}</span>
-      </div>
-      <div class="xypad-row">
-        <div>
-          <div class="ctitle" style="margin-bottom:6px;">Pan / Tilt</div>
-          <div class="xypad" id="xy-${i}">
-            <div class="xypad-grid"></div>
-            <div class="xypad-ch h"></div><div class="xypad-ch v"></div>
-            <div class="xypad-dot" id="xyd-${i}" style="left:${fx.pan*100}%;top:${(1-fx.tilt)*100}%"></div>
-          </div>
-        </div>
-        <div class="xy-readouts">
-          <div class="xy-val"><span>PAN</span><span id="pv-${i}">${Math.round(fx.pan*360-180)}°</span></div>
-          <div class="xy-val"><span>TILT</span><span id="tv-${i}">${Math.round(fx.tilt*180-90)}°</span></div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;">
-          ${makeEnc(i,'intens','INTENS',fx.intens,'var(--amber)')}
-          ${makeEnc(i,'zoom','ZOOM',fx.zoom,'var(--blue)')}
-        </div>
-      </div>
-      <div>
-        <div class="ctitle" style="margin-bottom:6px;">Attributes</div>
-        <div class="enc-row">
-          ${makeEnc(i,'focus','FOCUS',fx.focus,'var(--green)')}
-          ${makeEnc(i,'iris','IRIS',fx.iris,'var(--cyan)')}
-          ${makeEnc(i,'speed','SPEED',fx.speed,'var(--purple)')}
-          ${makeEnc(i,'strobe','STROB',fx.strobe,'var(--red)')}
-        </div>
-      </div>
-      <div>
-        <div class="ctitle" style="margin-bottom:6px;">Color</div>
-        <div class="color-row" id="clr-${i}">
-          ${COLOR_PRESETS.map((c,j)=>`<div class="csw${fx.color===j?' active':''}" style="background:${c.hex}" title="${c.name}" onclick="setMoverColor(${i},${j})"></div>`).join('')}
-          <span class="clrn" id="clrn-${i}">${COLOR_PRESETS[fx.color].name}</span>
-        </div>
-      </div>
-      <div>
-        <div class="ctitle" style="margin-bottom:6px;">Gobo</div>
-        <div class="gobo-row" id="gobo-${i}">
-          ${GOBO_LABELS.map((g,j)=>`<div class="btn-gobo${fx.gobo===j?' active':''}" onclick="setMoverGobo(${i},${j})">${g}</div>`).join('')}
-        </div>
-      </div>
-    `;
-    grid.appendChild(card);
-    setupXYPad(i);
-    setupEncoders(i);
-  });
-}
-
-function setupXYPad(mi) {
-  const pad=document.getElementById(`xy-${mi}`), dot=document.getElementById(`xyd-${mi}`);
-  if(!pad||!dot) return;
-  pad.style.touchAction='none';
-  let drag=false,tid=null;
-
-  function getPos(e) {
-    const r=pad.getBoundingClientRect(); let cx,cy;
-    if(e.touches)        { let t=null; for(const tt of e.touches)        if(tt.identifier===tid){t=tt;break;} if(!t)t=e.touches[0]; cx=t.clientX; cy=t.clientY; }
-    else if(e.changedTouches){ let t=null; for(const tt of e.changedTouches) if(tt.identifier===tid){t=tt;break;} if(!t)t=e.changedTouches[0]; cx=t.clientX; cy=t.clientY; }
-    else { cx=e.clientX; cy=e.clientY; }
-    return { x:Math.max(0,Math.min(1,(cx-r.left)/r.width)), y:Math.max(0,Math.min(1,(cy-r.top)/r.height)) };
+/* ══ CHANNEL CONFIG LIST + EDITOR ══ */
+function buildChannelConfigList() {
+  const list = document.getElementById('channelConfigList'); if (!list) return;
+  const count = parseInt(document.getElementById('cfgChan')?.value) || 24;
+  list.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const row = document.createElement('div');
+    const profileLabel = chanProfiles[i] === 'wash' ? 'WASH RGB' : 'SPOT INT';
+    row.className = 'cue-row' + (i === selectedChannel ? ' active' : '');
+    row.innerHTML = `<span class="cue-n">${i+1}</span><span class="cue-name">${chanLabels[i] || CHAN_NAMES[i] || ('Channel ' + (i+1))}</span><span class="cue-t">${profileLabel}</span><span class="cue-st">${chanVals[i]}%</span><button class="btn-cue-go" onclick="selectConfigChannel(${i})">EDIT</button>`;
+    list.appendChild(row);
   }
+}
 
-  function apply(pos) {
-    moverState[mi].pan=pos.x; moverState[mi].tilt=1-pos.y;
-    dot.style.left=(pos.x*100)+'%'; dot.style.top=(pos.y*100)+'%';
-    const pv=document.getElementById(`pv-${mi}`), tv=document.getElementById(`tv-${mi}`);
-    if(pv) pv.textContent=Math.round(pos.x*360-180)+'°';
-    if(tv) tv.textContent=Math.round((1-pos.y)*180-90)+'°';
-    if(document.getElementById('cfgLive')?.checked){ sendOSC(`/eos/chan/${mi+25}/param/pan`,+pos.x.toFixed(3)); sendOSC(`/eos/chan/${mi+25}/param/tilt`,+(1-pos.y).toFixed(3)); }
+function selectConfigChannel(ch) {
+  selectedChannel = Math.max(0, Math.min(47, ch));
+  const count = parseInt(document.getElementById('cfgChan')?.value) || 24;
+  if (selectedChannel >= count) selectedChannel = count - 1;
+  const label = document.getElementById('cfgSelLabel');
+  const type = document.getElementById('cfgSelType');
+  const intens = document.getElementById('cfgSelIntens');
+  const r = document.getElementById('cfgSelR');
+  const g = document.getElementById('cfgSelG');
+  const b = document.getElementById('cfgSelB');
+  const chan = document.getElementById('cfgSelChan');
+  if (chan) chan.textContent = String(selectedChannel + 1);
+  if (label) label.value = chanLabels[selectedChannel] || '';
+  if (type) type.value = chanProfiles[selectedChannel] || 'spot';
+  if (intens) intens.value = String(chanVals[selectedChannel]);
+  if (r) r.value = String(chanColors[selectedChannel].r);
+  if (g) g.value = String(chanColors[selectedChannel].g);
+  if (b) b.value = String(chanColors[selectedChannel].b);
+  onSelectedProfileChange();
+  buildChannelConfigList();
+}
+
+function onSelectedProfileChange() {
+  const type = document.getElementById('cfgSelType')?.value || 'spot';
+  const wrap = document.getElementById('cfgRgbWrap');
+  if (wrap) wrap.style.display = type === 'wash' ? 'block' : 'none';
+}
+
+function saveSelectedChannelConfig() {
+  const label = document.getElementById('cfgSelLabel')?.value || '';
+  const type = document.getElementById('cfgSelType')?.value || 'spot';
+  const intens = parseInt(document.getElementById('cfgSelIntens')?.value) || 0;
+  const r = parseInt(document.getElementById('cfgSelR')?.value) || 0;
+  const g = parseInt(document.getElementById('cfgSelG')?.value) || 0;
+  const b = parseInt(document.getElementById('cfgSelB')?.value) || 0;
+  chanLabels[selectedChannel] = label.trim();
+  chanProfiles[selectedChannel] = type;
+  chanColors[selectedChannel] = { r: Math.max(0,Math.min(100,r)), g: Math.max(0,Math.min(100,g)), b: Math.max(0,Math.min(100,b)) };
+  setChannelValue(selectedChannel, intens, { send:false });
+  buildFaders();
+  buildChannelPages();
+  buildChannelConfigList();
+  queueSaveState();
+}
+
+function sendSelectedChannelNow() {
+  saveSelectedChannelConfig();
+  const ch = selectedChannel + 1;
+  sendOSC(`/eos/chan/${ch}/param/intens`, +(getEffectiveChannelValue(selectedChannel)/100).toFixed(3));
+  if (chanProfiles[selectedChannel] === 'wash') {
+    const c = chanColors[selectedChannel];
+    sendOSC(`/eos/chan/${ch}/param/color/r`, +(c.r/100).toFixed(3));
+    sendOSC(`/eos/chan/${ch}/param/color/g`, +(c.g/100).toFixed(3));
+    sendOSC(`/eos/chan/${ch}/param/color/b`, +(c.b/100).toFixed(3));
   }
-
-  pad.addEventListener('mousedown',(e)=>{ drag=true; apply(getPos(e)); e.preventDefault(); });
-  pad.addEventListener('touchstart',(e)=>{ drag=true; tid=e.touches[0].identifier; apply(getPos(e)); e.preventDefault(); },{passive:false});
-  document.addEventListener('mousemove',(e)=>{ if(drag) apply(getPos(e)); });
-  document.addEventListener('touchmove',(e)=>{ if(drag){apply(getPos(e)); e.preventDefault();} },{passive:false});
-  document.addEventListener('mouseup',()=>{ if(drag){drag=false; sendOSC(`/eos/chan/${mi+25}/param/pan`,+moverState[mi].pan.toFixed(3)); sendOSC(`/eos/chan/${mi+25}/param/tilt`,+moverState[mi].tilt.toFixed(3));} });
-  document.addEventListener('touchend',()=>{ drag=false; tid=null; });
-  document.addEventListener('touchcancel',()=>{ drag=false; tid=null; });
 }
 
-function setMoverColor(mi,idx) {
-  moverState[mi].color=idx;
-  document.querySelectorAll(`#clr-${mi} .csw`).forEach((s,j)=>s.classList.toggle('active',j===idx));
-  const n=document.getElementById(`clrn-${mi}`); if(n) n.textContent=COLOR_PRESETS[idx].name;
-  sendOSC(`/eos/chan/${mi+25}/param/color/hue`,+(idx/8).toFixed(3));
+function applyChannelLayoutPreset() {
+  const count = parseInt(document.getElementById('cfgChan')?.value) || 24;
+  const spotCount = Math.max(0, parseInt(document.getElementById('cfgSpotCount')?.value) || 0);
+  const washCount = Math.max(0, parseInt(document.getElementById('cfgWashCount')?.value) || 0);
+  for (let i = 0; i < count; i++) {
+    if (i < spotCount) {
+      chanProfiles[i] = 'spot';
+      if (!chanLabels[i]) chanLabels[i] = `Spot ${i+1}`;
+    } else if (i < spotCount + washCount) {
+      chanProfiles[i] = 'wash';
+      if (!chanLabels[i]) chanLabels[i] = `Wash ${i-spotCount+1}`;
+    } else {
+      chanProfiles[i] = 'spot';
+    }
+  }
+  buildFaders();
+  buildChannelPages();
+  buildChannelConfigList();
+  selectConfigChannel(selectedChannel);
+  queueSaveState();
 }
-function setMoverGobo(mi,idx) {
-  moverState[mi].gobo=idx;
-  document.querySelectorAll(`#gobo-${mi} .btn-gobo`).forEach((b,j)=>b.classList.toggle('active',j===idx));
-  sendOSC(`/eos/chan/${mi+25}/param/gobo`,idx);
-}
-function selectAllMovers() { moverState.forEach((_,i)=>document.getElementById(`mc-${i}`)?.classList.add('sel')); }
-function homeAllMovers() {
-  moverState.forEach((m,i)=>{
-    m.pan=0.5; m.tilt=0.5;
-    const d=document.getElementById(`xyd-${i}`); if(d){d.style.left='50%';d.style.top='50%';}
-    const pv=document.getElementById(`pv-${i}`),tv=document.getElementById(`tv-${i}`);
-    if(pv) pv.textContent='0°'; if(tv) tv.textContent='0°';
-    sendOSC(`/eos/chan/${i+25}/param/pan`,0.5); sendOSC(`/eos/chan/${i+25}/param/tilt`,0.5);
-  });
-}
-function rebuildMovers() { initMovers(); buildMovers(); }
 
 /* ══ CUE LIST ══ */
 function buildCueList() {
   const list=document.getElementById('cueList'); if(!list) return;
-  const count=parseInt(document.getElementById('cfgCues')?.value)||20;
+  const set = getActiveCueSet();
   list.innerHTML='';
-  for(let i=0;i<count;i++){
+  set.cues.forEach((cue, i) => {
     const row=document.createElement('div');
-    row.className='cue-row'+(i+1===curCue?' active':''); row.id=`cr-${i+1}`;
-    row.innerHTML=`<span class="cue-n">${i+1}.0</span><span class="cue-name">${CUE_NAMES[i]||`Scene ${i+1}`}</span><span class="cue-t">${CUE_TIMES[i]||'2.0'}s</span><span class="cue-st" style="color:${i+1===curCue?'var(--green)':''}">${i+1===curCue?'ACTIVE':''}</span><button class="btn-cue-go" onclick="selectCue(${i+1})">GO</button>`;
+    row.className='cue-row'+(cue.number===curCue?' active':''); row.id=`cr-${i+1}`;
+    row.setAttribute('data-cue-number', cue.number);
+    row.innerHTML=`
+      <input class="finput cue-n" style="min-width:74px;max-width:90px;" value="${cue.number}" onchange="updateCueField(${i},'number',this.value)">
+      <input class="finput cue-name" style="min-width:160px;" value="${cue.name}" onchange="updateCueField(${i},'name',this.value)">
+      <input class="finput cue-t" style="min-width:72px;max-width:90px;" value="${cue.time}" onchange="updateCueField(${i},'time',this.value)">
+      <span class="cue-st" style="color:${cue.number===curCue?'var(--green)':''}">${cue.number===curCue?'ACTIVE':''}</span>
+      <button class="btn-cue-go" onclick="selectCue('${cue.number}')">GO</button>
+      <button class="btn-cue-go" style="color:var(--red);" onclick="deleteCue(${i})">DEL</button>`;
     list.appendChild(row);
-  }
+  });
 }
 
 /* ══ SETTINGS ══ */
@@ -1547,17 +1708,21 @@ function showTab(name,btn) {
 
 /* ══ INIT ══ */
 function initApp() {
-  [75,60,45,45,80,20,35,35,55,70,70,0,50,40,0,0,60,60,30,30,0,0,80,80].forEach((v,i)=>setChannelValue(i,v,{send:false}));
+  [75,60,45,45,80,20,35,35,55,70,70,0,50,40,0,0,60,60,30,30,0,0,80,80].forEach((v,i)=>setChannelValue(i,v,{send:false,persist:false}));
   for(let i=0;i<chanLabels.length;i++) chanLabels[i]=CHAN_NAMES[i]||'';
+  loadStateCookie();
   buildCueNums();
   buildFaders();
   buildChannelPages();
+  buildChannelConfigList();
+  selectConfigChannel(selectedChannel);
   setupGMFader();
   buildMacros();
-  initMovers();
-  buildMovers();
+  buildCueSetSelector();
   buildCueList();
   buildOscRef();
+  setCueDisp();
+  highlightCue();
   document.getElementById('gmFill').style.height='100%';
   document.getElementById('gmKnob').style.bottom='calc(100% - 9px)';
   logOSC('sys','','Controller ready');
