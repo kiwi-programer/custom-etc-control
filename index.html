@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ETC Element · OSC</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -194,7 +194,7 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
 /* ══ BOTTOM BAR ══ */
 .bbar {
   display:flex; align-items:center; gap:6px;
-  padding:8px 10px; background:var(--surf); border-top:1px solid var(--b1); flex-shrink:0;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom)); background:var(--surf); border-top:1px solid var(--b1); flex-shrink:0;
 }
 .btn-go {
   background:linear-gradient(160deg,#1c6030,#0e4020);
@@ -332,6 +332,14 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
 .btn-qa.bl  { color:var(--blue); }  .btn-qa.bl:active  { background:var(--blueg);  border-color:var(--blue); }
 .btn-qa.rd  { color:var(--red); border-color:rgba(232,64,64,0.28); }
 .btn-qa.rd:active,.btn-qa.rd.on { background:var(--redg); border-color:var(--red); color:var(--red); }
+
+.btn-cue,
+.bkbtn,
+.btn-qa,
+.btn-cue-go,
+.btnpri,
+.btnghost,
+.cp-preset { min-height:38px; }
 
 /* Macros */
 .macro-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(68px,1fr)); gap:5px; }
@@ -478,6 +486,99 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
   .mover-grid { grid-template-columns:1fr; }
   .settings-grid { grid-template-columns:1fr; }
   .gm-fader { height:110px; }
+}
+
+@media (max-width:680px) {
+  .hdr {
+    height:auto;
+    min-height:48px;
+    padding:6px 10px;
+    flex-wrap:wrap;
+    row-gap:5px;
+  }
+  .hdr-cue {
+    order:5;
+    flex-basis:100%;
+    text-align:left;
+    font-size:10px;
+  }
+  .tabs .tab {
+    min-width:92px;
+    font-size:11px;
+    padding:10px 8px;
+  }
+  .page {
+    padding:8px;
+    gap:7px;
+  }
+  .card {
+    padding:10px;
+  }
+  .frow {
+    flex-wrap:wrap;
+    align-items:flex-start;
+    gap:6px;
+  }
+  .flbl {
+    min-width:72px;
+    font-size:11px;
+  }
+  .finput {
+    min-height:40px;
+    font-size:14px;
+  }
+  .cp-row {
+    gap:6px;
+  }
+  .cp-row .btn-qa,
+  .cp-row .cp-preset {
+    flex:1 1 calc(50% - 6px);
+  }
+  .cp-fade {
+    gap:6px;
+  }
+  .cp-fade .finput {
+    max-width:none;
+    min-width:88px;
+    flex:1 1 120px;
+  }
+  .cue-row {
+    flex-wrap:wrap;
+    gap:6px;
+    padding:9px;
+  }
+  .cue-row.cue-edit {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+    align-items:center;
+  }
+  .cue-row.cue-edit .cue-name {
+    grid-column:1 / -1;
+    min-width:0;
+  }
+  .cue-row.cue-edit .cue-st {
+    min-width:0;
+    text-align:left;
+  }
+  .cue-row.cue-edit .btn-cue-go {
+    justify-self:stretch;
+    min-height:38px;
+  }
+  #channelConfigList .cue-row {
+    display:grid;
+    grid-template-columns:44px 1fr;
+    gap:6px;
+    align-items:center;
+  }
+  #channelConfigList .cue-row .cue-name {
+    grid-column:2;
+  }
+  #channelConfigList .cue-row .cue-t,
+  #channelConfigList .cue-row .cue-st,
+  #channelConfigList .cue-row .btn-cue-go {
+    grid-column:1 / -1;
+  }
 }
 </style>
 </head>
@@ -1851,7 +1952,7 @@ function buildCueList() {
   list.innerHTML='';
   set.cues.forEach((cue, i) => {
     const row=document.createElement('div');
-    row.className='cue-row'+(cue.number===curCue?' active':''); row.id=`cr-${i+1}`;
+    row.className='cue-row cue-edit'+(cue.number===curCue?' active':''); row.id=`cr-${i+1}`;
     row.setAttribute('data-cue-number', cue.number);
     row.innerHTML=`
       <input class="finput cue-n" style="min-width:74px;max-width:90px;" value="${cue.number}" onchange="updateCueField(${i},'number',this.value)">
