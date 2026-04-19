@@ -2,6 +2,19 @@
 
 Browser-based ETC Element/Eos OSC controller UI.
 
+## Console Scan + Connection Confirmation
+
+The setup wizard now includes two new actions in Step 2 (Console):
+
+- `SCAN CONSOLES`: asks the bridge to discover available ETC consoles and lists them in a dropdown.
+- `TEST CONNECTION`: asks the bridge to verify the selected/manual console details and returns a confirmation status.
+
+Notes:
+
+- Console scan and confirmation depend on bridge support for scan/test messages.
+- If your bridge does not support these messages yet, the UI will show a timeout or no-result status.
+- You can still enter console IP/port/user manually and continue.
+
 ## Deploy On Vercel
 
 1. Push this repository to GitHub.

@@ -111,6 +111,15 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
 .sinput:focus { border-color:var(--amber); box-shadow:0 0 0 2px var(--amberg); }
 .sinput::placeholder { color:var(--t3); }
 
+.smini {
+  margin-top:8px;
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--t2);
+  line-height:1.4;
+}
+.smini strong { color:var(--amber); }
+
 .sstatus {
   display:flex; align-items:center; gap:10px;
   padding:9px 12px; border-radius:var(--r5);
@@ -619,7 +628,14 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
       <!-- Step 2 -->
       <div class="spanel" id="sp-1">
         <div class="stitle">ETC Console</div>
-        <div class="sdesc">Bridge connected ✓ — now enter your ETC Eos / Element console's network details.</div>
+        <div class="sdesc">Bridge connected ✓ — scan for consoles or enter ETC Eos / Element network details manually.</div>
+        <div class="sfield">
+          <label>Discovered Consoles</label>
+          <select class="sinput" id="s-consoleList" onchange="selectDiscoveredConsole()">
+            <option value="">No scan results yet</option>
+          </select>
+          <div class="smini" id="s-scanHint">Press <strong>SCAN CONSOLES</strong> to discover available desks.</div>
+        </div>
         <div class="sfield">
           <label>Console IP Address</label>
           <input class="sinput" id="s-oscHost" type="text" inputmode="url" placeholder="192.168.1.100" autocomplete="off" autocorrect="off" spellcheck="false">
@@ -634,9 +650,11 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
             <input class="sinput" id="s-oscUser" type="number" inputmode="numeric" placeholder="1" value="1">
           </div>
         </div>
-        <div class="sstatus ok" id="s1st" style="margin-bottom:14px;"><div class="sdot"></div><span>Bridge connected — fill in console details</span></div>
+        <div class="sstatus" id="s1st" style="margin-bottom:14px;"><div class="sdot"></div><span id="s1msg">Bridge connected — fill in console details</span></div>
         <div class="sacts">
           <button class="btnghost" onclick="setupBack()">BACK</button>
+          <button class="btnghost" id="s1scanBtn" onclick="scanConsoles()">SCAN CONSOLES</button>
+          <button class="btnghost" id="s1testBtn" onclick="confirmConsoleConnection()">TEST CONNECTION</button>
           <button class="btnpri" onclick="setupFinish()">LAUNCH →</button>
         </div>
       </div>
@@ -981,6 +999,10 @@ function hexToRgbPct(hex) {
 
 /* ══ SETUP WIZARD ══ */
 let setupStep = 0;
+let discoveredConsoles = [];
+let scanTimeout = null;
+let connectConfirmTimeout = null;
+let pendingConnectConfirmId = null;
 
 function setupConnect() {
   const host = document.getElementById('s-wsHost').value.trim();
@@ -1018,7 +1040,7 @@ function setupConnect() {
       setS0('err','Cannot connect — check host / port');
       document.getElementById('s0btn').disabled = false;
     };
-    ws.onmessage = (e) => { logOSC('in','', e.data); flashTX(); };
+    ws.onmessage = (e) => { logOSC('in','', e.data); flashTX(); handleBridgeMessage(e.data); };
   } catch(err) {
     setS0('err','Invalid address: ' + err.message);
     document.getElementById('s0btn').disabled = false;
@@ -1035,6 +1057,176 @@ function goStep(n) {
   setupStep = n;
   document.querySelectorAll('.spanel').forEach((p,i) => p.classList.toggle('active', i === n));
   document.querySelectorAll('.stab').forEach((t,i) => { t.classList.toggle('active', i === n); t.classList.toggle('done', i < n); });
+}
+
+function setS1(type, msg) {
+  const el = document.getElementById('s1st');
+  if (!el) return;
+  el.className = 'sstatus ' + (type || '');
+  const msgEl = document.getElementById('s1msg');
+  if (msgEl) msgEl.textContent = msg;
+}
+
+function renderDiscoveredConsoles() {
+  const sel = document.getElementById('s-consoleList');
+  const hint = document.getElementById('s-scanHint');
+  if (!sel) return;
+
+  const options = ['<option value="">Select discovered console</option>'];
+  discoveredConsoles.forEach((c, i) => {
+    const host = c.host || c.ip || '';
+    const port = c.port || 3032;
+    const user = c.user || 1;
+    const label = c.name ? `${c.name} (${host}:${port})` : `${host}:${port}`;
+    const safeLabel = String(label).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+    options.push(`<option value="${i}">${safeLabel} · U${user}</option>`);
+  });
+  sel.innerHTML = options.join('');
+
+  if (hint) {
+    hint.textContent = discoveredConsoles.length
+      ? `${discoveredConsoles.length} console${discoveredConsoles.length === 1 ? '' : 's'} discovered.`
+      : 'Press SCAN CONSOLES to discover available desks.';
+  }
+}
+
+function selectDiscoveredConsole() {
+  const sel = document.getElementById('s-consoleList');
+  if (!sel || !sel.value) return;
+  const idx = parseInt(sel.value, 10);
+  const c = discoveredConsoles[idx];
+  if (!c) return;
+  const host = c.host || c.ip || '';
+  const port = c.port || 3032;
+  const user = c.user || 1;
+  document.getElementById('s-oscHost').value = host;
+  document.getElementById('s-oscPort').value = String(port);
+  document.getElementById('s-oscUser').value = String(user);
+  setS1('ok', `Selected ${c.name || host}`);
+}
+
+function scanConsoles() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    setS1('err', 'Bridge is offline — reconnect bridge first');
+    return;
+  }
+
+  const btn = document.getElementById('s1scanBtn');
+  if (btn) btn.disabled = true;
+  setS1('connecting', 'Scanning network for ETC consoles …');
+
+  if (scanTimeout) clearTimeout(scanTimeout);
+  scanTimeout = setTimeout(() => {
+    if (btn) btn.disabled = false;
+    setS1('err', 'Scan timed out — no response from bridge');
+  }, 8000);
+
+  const requestId = `scan-${Date.now()}`;
+  const payload = {
+    type: 'console_scan',
+    action: 'scanConsoles',
+    requestId,
+    options: { timeoutMs: 5000 }
+  };
+  ws.send(JSON.stringify(payload));
+  logOSC('sys', '', `Console scan requested (${requestId})`);
+}
+
+function confirmConsoleConnection() {
+  const host = document.getElementById('s-oscHost').value.trim();
+  const port = parseInt(document.getElementById('s-oscPort').value, 10) || 3032;
+  const user = parseInt(document.getElementById('s-oscUser').value, 10) || 1;
+  if (!host) {
+    setS1('err', 'Enter a console IP first');
+    return;
+  }
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    setS1('err', 'Bridge is offline — reconnect bridge first');
+    return;
+  }
+
+  const btn = document.getElementById('s1testBtn');
+  if (btn) btn.disabled = true;
+
+  pendingConnectConfirmId = `confirm-${Date.now()}`;
+  if (connectConfirmTimeout) clearTimeout(connectConfirmTimeout);
+  connectConfirmTimeout = setTimeout(() => {
+    if (btn) btn.disabled = false;
+    setS1('err', 'No confirmation received from bridge');
+    pendingConnectConfirmId = null;
+  }, 7000);
+
+  setS1('connecting', `Testing console ${host}:${port} (User ${user}) …`);
+  const payload = {
+    type: 'console_connect_test',
+    action: 'testConsoleConnection',
+    requestId: pendingConnectConfirmId,
+    console: { host, port, user }
+  };
+  ws.send(JSON.stringify(payload));
+  logOSC('sys', '', `Console test requested (${host}:${port}, U${user})`);
+}
+
+function normalizeConsoleScanItems(items) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((item) => {
+      if (typeof item === 'string') return { host: item, port: 3032, user: 1, name: '' };
+      if (!item || typeof item !== 'object') return null;
+      return {
+        host: item.host || item.ip || item.address || '',
+        ip: item.ip || item.host || item.address || '',
+        port: Number(item.port || item.oscPort || 3032),
+        user: Number(item.user || item.oscUser || 1),
+        name: item.name || item.consoleName || item.model || ''
+      };
+    })
+    .filter((x) => x && x.host);
+}
+
+function handleBridgeMessage(raw) {
+  let parsed = null;
+  try { parsed = JSON.parse(raw); } catch (e) { return; }
+
+  const type = String(parsed.type || parsed.event || parsed.action || '').toLowerCase();
+
+  const scanItems = [
+    ...normalizeConsoleScanItems(parsed.consoles),
+    ...normalizeConsoleScanItems(parsed.results),
+    ...normalizeConsoleScanItems(parsed.items)
+  ];
+
+  const looksLikeScan = type.includes('scan') && (type.includes('console') || type.includes('eos'));
+  if (looksLikeScan || scanItems.length) {
+    discoveredConsoles = scanItems;
+    renderDiscoveredConsoles();
+    if (scanTimeout) { clearTimeout(scanTimeout); scanTimeout = null; }
+    const btn = document.getElementById('s1scanBtn');
+    if (btn) btn.disabled = false;
+    if (scanItems.length) {
+      setS1('ok', `Found ${scanItems.length} console${scanItems.length === 1 ? '' : 's'}`);
+    } else {
+      setS1('err', 'No consoles found on scan');
+    }
+    return;
+  }
+
+  const connectState = String(parsed.status || parsed.result || '').toLowerCase();
+  const connectType = type.includes('console') && (type.includes('connect') || type.includes('confirm') || type.includes('test'));
+  if (connectType || parsed.requestId === pendingConnectConfirmId) {
+    const success = parsed.success === true || connectState === 'ok' || connectState === 'connected' || connectState === 'success';
+    if (connectConfirmTimeout) { clearTimeout(connectConfirmTimeout); connectConfirmTimeout = null; }
+    pendingConnectConfirmId = null;
+    const btn = document.getElementById('s1testBtn');
+    if (btn) btn.disabled = false;
+    if (success) {
+      const name = parsed.console?.name || parsed.name || parsed.consoleName || '';
+      setS1('ok', `Console connection confirmed${name ? ` · ${name}` : ''}`);
+    } else {
+      const reason = parsed.error || parsed.message || 'Bridge rejected console connection';
+      setS1('err', String(reason));
+    }
+  }
 }
 
 function setupBack() { goStep(0); document.getElementById('s0btn').disabled = false; }
@@ -1087,7 +1279,7 @@ function reconnectOSC() {
     ws.onopen  = () => { oscConn = true;  updateConn(true);  logOSC('sys','','Reconnected'); };
     ws.onclose = () => { oscConn = false; updateConn(false); };
     ws.onerror = () => updateConn(false,'err');
-    ws.onmessage = (e) => { logOSC('in','',e.data); flashTX(); };
+    ws.onmessage = (e) => { logOSC('in','',e.data); flashTX(); handleBridgeMessage(e.data); };
   } catch(e) { logOSC('err','',e.message); }
 }
 function disconnectOSC() { if (ws) ws.close(); oscConn = false; updateConn(false); }
