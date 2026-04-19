@@ -575,8 +575,7 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
 
   <nav class="tabs">
     <button class="tab active" onclick="showTab('channels',this)">Channels</button>
-    <button class="tab" onclick="showTab('channel-pages',this)">Channel Pages</button>
-    <button class="tab" onclick="showTab('movers',this)">Channel Config</button>
+    <button class="tab" id="tab-channel-config" onclick="showTab('movers',this)">Channel Config</button>
     <button class="tab" onclick="showTab('cues',this)">Cues</button>
     <button class="tab" id="tab-settings" onclick="showTab('settings',this)">Settings</button>
   </nav>
@@ -631,24 +630,34 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
       </div>
     </div>
 
-    <!-- CHANNEL PAGES -->
-    <div class="page" id="page-channel-pages">
+    <!-- CHANNEL EDITOR (HIDDEN PAGE) -->
+    <div class="page" id="page-channel-editor">
       <div class="card">
-        <div class="ctitle">Channel Select</div>
-        <div class="cp-nav" id="channelPageNav"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <div class="ctitle" style="margin:0;">Channel Editor</div>
+          <button class="btn-qa bl" onclick="closeChannelEditor()">BACK TO LIST</button>
+        </div>
       </div>
       <div class="card">
         <div class="cp-head">
           <div>
             <div class="cp-name" id="cpName">CH 1</div>
-            <div class="cp-sub" id="cpSub">INTENSITY CONTROL</div>
+            <div class="cp-sub" id="cpSub">SPOT</div>
           </div>
           <div class="cp-live" id="cpLive">0%</div>
         </div>
         <div class="cp-fade">
           <span class="flbl" style="min-width:70px;">Label</span>
           <input class="finput" id="cpLabel" type="text" maxlength="18" placeholder="Channel label">
-          <button class="btn-qa bl" onclick="saveChannelLabel()">SAVE LABEL</button>
+          <button class="btn-qa bl" onclick="saveChannelLabel()">SAVE</button>
+        </div>
+        <div class="cp-fade" style="margin-top:8px;">
+          <span class="flbl" style="min-width:70px;">Type</span>
+          <select class="finput" id="cpType" onchange="onEditorProfileChange()" style="max-width:220px;">
+            <option value="spot">Spot (Intensity)</option>
+            <option value="rgb">RGB (Intensity + RGB + Picker)</option>
+            <option value="mover">Mover (Pan/Tilt/Gobo/Color/Intensity)</option>
+          </select>
         </div>
         <div class="cp-row">
           <button class="btn-qa" onclick="nudgeChannel(-10)">-10%</button>
@@ -668,11 +677,32 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
           <button class="cp-preset" onclick="setSelectedChannelValue(100)">100%</button>
         </div>
         <div class="cp-fade" style="margin-top:10px;">
+          <span class="flbl" style="min-width:70px;">Intensity</span>
+          <input class="finput" id="cpIntFader" type="range" min="0" max="100" value="0" oninput="syncEditorIntensity()">
+          <span class="flbl" id="cpIntLabel" style="min-width:46px;">0%</span>
+        </div>
+        <div class="cp-fade" style="margin-top:10px;">
           <span class="flbl" style="min-width:70px;">Fade To</span>
           <input class="finput" id="cpFadeTarget" type="number" min="0" max="100" value="100">
           <span class="flbl" style="min-width:auto;">Time(s)</span>
           <input class="finput" id="cpFadeTime" type="number" min="0" step="0.1" value="1.5">
           <button class="btn-qa gr" onclick="runChannelFade()">RUN FADE</button>
+        </div>
+        <div id="cpRgbWrap" style="margin-top:10px;display:none;">
+          <div class="cp-fade"><span class="flbl" style="min-width:70px;">Red</span><input class="finput" id="cpRFader" type="range" min="0" max="100" value="0" oninput="syncEditorRGB('r')"><input class="finput" id="cpR" type="number" min="0" max="100" oninput="syncEditorRGBNum('r')" style="max-width:80px;"></div>
+          <div class="cp-fade" style="margin-top:6px;"><span class="flbl" style="min-width:70px;">Green</span><input class="finput" id="cpGFader" type="range" min="0" max="100" value="0" oninput="syncEditorRGB('g')"><input class="finput" id="cpG" type="number" min="0" max="100" oninput="syncEditorRGBNum('g')" style="max-width:80px;"></div>
+          <div class="cp-fade" style="margin-top:6px;"><span class="flbl" style="min-width:70px;">Blue</span><input class="finput" id="cpBFader" type="range" min="0" max="100" value="0" oninput="syncEditorRGB('b')"><input class="finput" id="cpB" type="number" min="0" max="100" oninput="syncEditorRGBNum('b')" style="max-width:80px;"></div>
+          <div class="cp-fade" style="margin-top:6px;"><span class="flbl" style="min-width:70px;">Color</span><input class="finput" id="cpColorPicker" type="color" value="#ffffff"></div>
+        </div>
+        <div id="cpMoverWrap" style="margin-top:10px;display:none;">
+          <div class="cp-fade"><span class="flbl" style="min-width:70px;">Pan</span><input class="finput" id="cpPan" type="number" min="0" max="100"></div>
+          <div class="cp-fade" style="margin-top:6px;"><span class="flbl" style="min-width:70px;">Tilt</span><input class="finput" id="cpTilt" type="number" min="0" max="100"></div>
+          <div class="cp-fade" style="margin-top:6px;"><span class="flbl" style="min-width:70px;">Gobo</span><input class="finput" id="cpGobo" type="number" min="0" max="50"></div>
+          <div class="cp-fade" style="margin-top:6px;"><span class="flbl" style="min-width:70px;">Color</span><input class="finput" id="cpMoverColor" type="color" value="#ffffff"></div>
+        </div>
+        <div style="display:flex; gap:6px; margin-top:10px;">
+          <button class="btn-qa gr" onclick="saveSelectedChannelConfig()">SAVE CHANNEL</button>
+          <button class="btn-qa bl" onclick="sendSelectedChannelNow()">SEND NOW</button>
         </div>
       </div>
     </div>
@@ -684,7 +714,7 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
           <div class="ctitle" style="margin:0;">Channel List</div>
           <div style="display:flex; gap:5px;">
             <button class="btn-qa" onclick="buildChannelConfigList()">REFRESH</button>
-            <button class="btn-qa bl" onclick="selectConfigChannel(selectedChannel)">OPEN SELECTED</button>
+            <button class="btn-qa bl" onclick="openChannelEditor(selectedChannel)">OPEN SELECTED</button>
           </div>
         </div>
       </div>
@@ -698,7 +728,8 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
         <div class="frow"><span class="flbl">Type</span>
           <select class="finput" id="cfgSelType" onchange="onSelectedProfileChange()">
             <option value="spot">Spot (Intensity)</option>
-            <option value="wash">Color Wash (Intensity+RGB)</option>
+            <option value="rgb">RGB (Intensity+RGB)</option>
+            <option value="mover">Mover (Pan/Tilt/Gobo/Color)</option>
           </select>
         </div>
         <div class="frow"><span class="flbl">Intensity</span><input class="finput" id="cfgSelIntens" type="number" min="0" max="100"></div>
@@ -706,6 +737,13 @@ button { -webkit-tap-highlight-color:transparent; font-family:inherit; }
           <div class="frow"><span class="flbl">Red</span><input class="finput" id="cfgSelR" type="number" min="0" max="100"></div>
           <div class="frow"><span class="flbl">Green</span><input class="finput" id="cfgSelG" type="number" min="0" max="100"></div>
           <div class="frow"><span class="flbl">Blue</span><input class="finput" id="cfgSelB" type="number" min="0" max="100"></div>
+          <div class="frow"><span class="flbl">Color</span><input class="finput" id="cfgSelColor" type="color" value="#ffffff"></div>
+        </div>
+        <div id="cfgMoverWrap">
+          <div class="frow"><span class="flbl">Pan</span><input class="finput" id="cfgSelPan" type="number" min="0" max="100"></div>
+          <div class="frow"><span class="flbl">Tilt</span><input class="finput" id="cfgSelTilt" type="number" min="0" max="100"></div>
+          <div class="frow"><span class="flbl">Gobo</span><input class="finput" id="cfgSelGobo" type="number" min="0" max="50"></div>
+          <div class="frow"><span class="flbl">Mvr Color</span><input class="finput" id="cfgSelMoverColor" type="color" value="#ffffff"></div>
         </div>
         <div style="display:flex; gap:6px; margin-top:4px;">
           <button class="btn-qa gr" onclick="saveSelectedChannelConfig()">SAVE CHANNEL</button>
@@ -802,6 +840,7 @@ const chanLabels = new Array(48).fill('');
 const chanMuted = new Array(48).fill(false);
 const chanProfiles = new Array(48).fill('spot');
 const chanColors = Array.from({length:48}, () => ({r:0,g:0,b:0}));
+const chanMover = Array.from({length:48}, () => ({pan:50,tilt:50,gobo:0,color:'#ffffff'}));
 const macroOn  = new Array(12).fill(false);
 let soloChan = -1;
 let selectedChannel = 0;
@@ -824,6 +863,20 @@ let cueSets = [
 const CHAN_NAMES = ['SPOT 1','SPOT 2','SPOT 3','WASH L','WASH R','WASH C','FRONT L','FRONT R','BACK L','BACK R','CYCO','SPEC 1','SPEC 2','SPEC 3','FOOT L','FOOT R','SHIN L','SHIN R','FLOOR 1','FLOOR 2','STROBE','FOG','SPOT 4','SPOT 5','CH 25','CH 26','CH 27','CH 28','CH 29','CH 30','CH 31','CH 32','CH 33','CH 34','CH 35','CH 36'];
 const MACRO_LABELS = ['ACT 1','ACT 2','CHASE','STROB','SNAP','FADE','BLK IN','BLK OUT','RESET','HOUSE','WORK','PRESET'];
 const OSC_PATHS = [{path:'/eos/go',type:'f',desc:'Trigger GO'},{path:'/eos/stop',type:'f',desc:'Stop'},{path:'/eos/back',type:'f',desc:'Back'},{path:'/eos/cue/{n}/fire',type:'f',desc:'Fire cue N'},{path:'/eos/chan/{n}/param/intens',type:'f',desc:'Intensity 0-1'},{path:'/eos/chan/{n}/param/pan',type:'f',desc:'Pan 0-1'},{path:'/eos/chan/{n}/param/tilt',type:'f',desc:'Tilt 0-1'},{path:'/eos/chan/{n}/param/color/hue',type:'f',desc:'Hue 0-1'},{path:'/eos/chan/{n}/param/gobo',type:'i',desc:'Gobo index'},{path:'/eos/grandmaster',type:'f',desc:'Grand master'},{path:'/eos/blackout',type:'i',desc:'Blackout 0/1'},{path:'/eos/macro/{n}/fire',type:'f',desc:'Fire macro N'}];
+
+function toHexByte(n) { return Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0'); }
+function rgbToHex(r,g,b) { return `#${toHexByte(Math.round((r/100)*255))}${toHexByte(Math.round((g/100)*255))}${toHexByte(Math.round((b/100)*255))}`; }
+function hexToRgbPct(hex) {
+  const h = String(hex || '#ffffff').replace('#','');
+  const v = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  const n = parseInt(v,16);
+  if (Number.isNaN(n)) return { r:100,g:100,b:100 };
+  return {
+    r: Math.round((((n >> 16) & 255) / 255) * 100),
+    g: Math.round((((n >> 8) & 255) / 255) * 100),
+    b: Math.round(((n & 255) / 255) * 100)
+  };
+}
 
 /* ══ SETUP WIZARD ══ */
 let setupStep = 0;
@@ -1301,25 +1354,21 @@ function changeBank(off,btn) {
   buildFaders();
 }
 
-/* ══ CHANNEL PAGES ══ */
-function buildChannelPages() {
-  const nav=document.getElementById('channelPageNav'); if(!nav) return;
-  const count=parseInt(document.getElementById('cfgChan')?.value)||24;
-  nav.innerHTML='';
-  for(let i=0;i<count;i++) {
-    const b=document.createElement('button');
-    b.className='btn-cp'+(selectedChannel===i?' active':'');
-    b.textContent=String(i+1);
-    b.onclick=()=>selectChannelPage(i);
-    nav.appendChild(b);
-  }
-  refreshChannelPage();
+/* ══ CHANNEL EDITOR (HIDDEN PAGE) ══ */
+function profileLabel(profile) {
+  if (profile === 'mover') return 'MOVER';
+  if (profile === 'rgb') return 'RGB';
+  return 'SPOT';
 }
 
-function selectChannelPage(ch) {
-  selectedChannel=ch;
-  document.querySelectorAll('.btn-cp').forEach((b,i)=>b.classList.toggle('active',i===ch));
+function openChannelEditor(ch) {
+  selectConfigChannel(ch);
   refreshChannelPage();
+  showTab('channel-editor');
+}
+
+function closeChannelEditor() {
+  showTab('movers', document.getElementById('tab-channel-config'));
 }
 
 function refreshChannelPage() {
@@ -1327,18 +1376,83 @@ function refreshChannelPage() {
   const sub=document.getElementById('cpSub');
   const live=document.getElementById('cpLive');
   const label=document.getElementById('cpLabel');
+  const type=document.getElementById('cpType');
   const mbtn=document.getElementById('cpMuteBtn');
   const sbtn=document.getElementById('cpSoloBtn');
-  if(!name||!sub||!live||!label||!mbtn||!sbtn) return;
+  if(!name||!sub||!live||!label||!type||!mbtn||!sbtn) return;
   const ch=selectedChannel;
+  const p=chanProfiles[ch]||'spot';
   const lbl=chanLabels[ch]||CHAN_NAMES[ch]||`CH ${ch+1}`;
   const eff=getEffectiveChannelValue(ch);
   name.textContent=`CH ${ch+1} · ${lbl}`;
-  sub.textContent='INDIVIDUAL CHANNEL PAGE';
+  sub.textContent=profileLabel(p);
   live.textContent=(chanMuted[ch]?'MUTE · ':'')+eff+'%';
   label.value=chanLabels[ch]||'';
+  type.value=p;
   mbtn.classList.toggle('on',!!chanMuted[ch]);
   sbtn.classList.toggle('on',soloChan===ch);
+  const rWrap=document.getElementById('cpRgbWrap');
+  const mWrap=document.getElementById('cpMoverWrap');
+  if (rWrap) rWrap.style.display = p === 'rgb' ? 'block' : 'none';
+  if (mWrap) mWrap.style.display = p === 'mover' ? 'block' : 'none';
+  const r=document.getElementById('cpR'),g=document.getElementById('cpG'),b=document.getElementById('cpB'),cp=document.getElementById('cpColorPicker');
+  if (r) r.value=String(chanColors[ch].r);
+  if (g) g.value=String(chanColors[ch].g);
+  if (b) b.value=String(chanColors[ch].b);
+  if (cp) cp.value=rgbToHex(chanColors[ch].r,chanColors[ch].g,chanColors[ch].b);
+  const pan=document.getElementById('cpPan'), tilt=document.getElementById('cpTilt'), gobo=document.getElementById('cpGobo'), mc=document.getElementById('cpMoverColor');
+  if (pan) pan.value=String(chanMover[ch].pan);
+  if (tilt) tilt.value=String(chanMover[ch].tilt);
+  if (gobo) gobo.value=String(chanMover[ch].gobo);
+  if (mc) mc.value=chanMover[ch].color || '#ffffff';
+  const intF=document.getElementById('cpIntFader');
+  const intL=document.getElementById('cpIntLabel');
+  if (intF) intF.value=String(chanVals[ch]);
+  if (intL) intL.textContent=`${chanVals[ch]}%`;
+  const rf=document.getElementById('cpRFader'), gf=document.getElementById('cpGFader'), bf=document.getElementById('cpBFader');
+  if (rf) rf.value=String(chanColors[ch].r);
+  if (gf) gf.value=String(chanColors[ch].g);
+  if (bf) bf.value=String(chanColors[ch].b);
+}
+
+function onEditorProfileChange() {
+  const tp=document.getElementById('cpType'); if(!tp) return;
+  chanProfiles[selectedChannel]=tp.value;
+  const cfgType = document.getElementById('cfgSelType');
+  if (cfgType) cfgType.value = tp.value;
+  onSelectedProfileChange();
+  refreshChannelPage();
+  buildChannelConfigList();
+  queueSaveState();
+}
+
+function syncEditorIntensity() {
+  const f=document.getElementById('cpIntFader');
+  const l=document.getElementById('cpIntLabel');
+  if (!f || !l) return;
+  l.textContent = `${parseInt(f.value)||0}%`;
+}
+
+function syncEditorRGB(channel) {
+  const r=document.getElementById('cpR'), g=document.getElementById('cpG'), b=document.getElementById('cpB');
+  const rf=document.getElementById('cpRFader'), gf=document.getElementById('cpGFader'), bf=document.getElementById('cpBFader');
+  if (!r || !g || !b || !rf || !gf || !bf) return;
+  if (channel === 'r') r.value = rf.value;
+  if (channel === 'g') g.value = gf.value;
+  if (channel === 'b') b.value = bf.value;
+  const cp=document.getElementById('cpColorPicker');
+  if (cp) cp.value = rgbToHex(parseInt(r.value)||0, parseInt(g.value)||0, parseInt(b.value)||0);
+}
+
+function syncEditorRGBNum(channel) {
+  const r=document.getElementById('cpR'), g=document.getElementById('cpG'), b=document.getElementById('cpB');
+  const rf=document.getElementById('cpRFader'), gf=document.getElementById('cpGFader'), bf=document.getElementById('cpBFader');
+  if (!r || !g || !b || !rf || !gf || !bf) return;
+  if (channel === 'r') rf.value = String(Math.max(0,Math.min(100,parseInt(r.value)||0)));
+  if (channel === 'g') gf.value = String(Math.max(0,Math.min(100,parseInt(g.value)||0)));
+  if (channel === 'b') bf.value = String(Math.max(0,Math.min(100,parseInt(b.value)||0)));
+  const cp=document.getElementById('cpColorPicker');
+  if (cp) cp.value = rgbToHex(parseInt(r.value)||0, parseInt(g.value)||0, parseInt(b.value)||0);
 }
 
 function setSelectedChannelValue(v) {
@@ -1353,7 +1467,7 @@ function saveChannelLabel() {
   const inp=document.getElementById('cpLabel'); if(!inp) return;
   chanLabels[selectedChannel]=(inp.value||'').trim();
   buildFaders();
-  buildChannelPages();
+  refreshChannelPage();
   buildChannelConfigList();
   queueSaveState();
 }
@@ -1394,8 +1508,12 @@ function copySelectedToNext() {
   if(next===selectedChannel) return;
   setChannelValue(next,chanVals[selectedChannel],{send:true});
   chanLabels[next]=chanLabels[selectedChannel]||chanLabels[next];
+  chanProfiles[next]=chanProfiles[selectedChannel];
+  chanColors[next]={...chanColors[selectedChannel]};
+  chanMover[next]={...chanMover[selectedChannel]};
   buildFaders();
-  buildChannelPages();
+  refreshChannelPage();
+  buildChannelConfigList();
 }
 
 function clearChannelStates() {
@@ -1412,7 +1530,7 @@ function onChannelCountChange() {
   if(bankOff>=count) bankOff=Math.max(0,count-12);
   if(selectedChannel>=count) selectedChannel=count-1;
   buildFaders();
-  buildChannelPages();
+  refreshChannelPage();
   buildChannelConfigList();
   buildCueList();
   queueSaveState();
@@ -1430,6 +1548,7 @@ function getSerializableState() {
     chanMuted,
     chanProfiles,
     chanColors,
+    chanMover,
     cueSets,
     activeCueSet,
     curCue,
@@ -1447,10 +1566,22 @@ function applySerializableState(state) {
   if (Array.isArray(state.chanVals)) state.chanVals.slice(0,48).forEach((v,i)=>chanVals[i]=Math.max(0,Math.min(100,parseInt(v)||0)));
   if (Array.isArray(state.chanLabels)) state.chanLabels.slice(0,48).forEach((v,i)=>chanLabels[i]=String(v||''));
   if (Array.isArray(state.chanMuted)) state.chanMuted.slice(0,48).forEach((v,i)=>chanMuted[i]=!!v);
-  if (Array.isArray(state.chanProfiles)) state.chanProfiles.slice(0,48).forEach((v,i)=>chanProfiles[i]=v==='wash'?'wash':'spot');
+  if (Array.isArray(state.chanProfiles)) state.chanProfiles.slice(0,48).forEach((v,i)=>{
+    const p = String(v || 'spot');
+    chanProfiles[i] = p === 'wash' ? 'rgb' : (p === 'rgb' || p === 'mover' ? p : 'spot');
+  });
   if (Array.isArray(state.chanColors)) state.chanColors.slice(0,48).forEach((v,i)=>{
     const c=v||{};
     chanColors[i]={r:Math.max(0,Math.min(100,parseInt(c.r)||0)),g:Math.max(0,Math.min(100,parseInt(c.g)||0)),b:Math.max(0,Math.min(100,parseInt(c.b)||0))};
+  });
+  if (Array.isArray(state.chanMover)) state.chanMover.slice(0,48).forEach((v,i)=>{
+    const m = v || {};
+    chanMover[i] = {
+      pan: Math.max(0, Math.min(100, parseInt(m.pan) || 50)),
+      tilt: Math.max(0, Math.min(100, parseInt(m.tilt) || 50)),
+      gobo: Math.max(0, Math.min(50, parseInt(m.gobo) || 0)),
+      color: /^#[0-9a-fA-F]{6}$/.test(String(m.color || '')) ? String(m.color) : '#ffffff'
+    };
   });
   if (Array.isArray(state.cueSets) && state.cueSets.length) {
     cueSets = state.cueSets.map((s) => ({
@@ -1586,9 +1717,10 @@ function buildChannelConfigList() {
   list.innerHTML = '';
   for (let i = 0; i < count; i++) {
     const row = document.createElement('div');
-    const profileLabel = chanProfiles[i] === 'wash' ? 'WASH RGB' : 'SPOT INT';
+    const profileLabel = chanProfiles[i] === 'mover' ? 'MOVER' : (chanProfiles[i] === 'rgb' ? 'RGB' : 'SPOT');
     row.className = 'cue-row' + (i === selectedChannel ? ' active' : '');
-    row.innerHTML = `<span class="cue-n">${i+1}</span><span class="cue-name">${chanLabels[i] || CHAN_NAMES[i] || ('Channel ' + (i+1))}</span><span class="cue-t">${profileLabel}</span><span class="cue-st">${chanVals[i]}%</span><button class="btn-cue-go" onclick="selectConfigChannel(${i})">EDIT</button>`;
+    row.onclick = () => selectConfigChannel(i);
+    row.innerHTML = `<span class="cue-n">${i+1}</span><span class="cue-name">${chanLabels[i] || CHAN_NAMES[i] || ('Channel ' + (i+1))}</span><span class="cue-t">${profileLabel}</span><span class="cue-st">${chanVals[i]}%</span><button class="btn-cue-go" onclick="event.stopPropagation();openChannelEditor(${i})">EDIT</button>`;
     list.appendChild(row);
   }
 }
@@ -1603,6 +1735,11 @@ function selectConfigChannel(ch) {
   const r = document.getElementById('cfgSelR');
   const g = document.getElementById('cfgSelG');
   const b = document.getElementById('cfgSelB');
+  const c = document.getElementById('cfgSelColor');
+  const pan = document.getElementById('cfgSelPan');
+  const tilt = document.getElementById('cfgSelTilt');
+  const gobo = document.getElementById('cfgSelGobo');
+  const moverColor = document.getElementById('cfgSelMoverColor');
   const chan = document.getElementById('cfgSelChan');
   if (chan) chan.textContent = String(selectedChannel + 1);
   if (label) label.value = chanLabels[selectedChannel] || '';
@@ -1611,29 +1748,53 @@ function selectConfigChannel(ch) {
   if (r) r.value = String(chanColors[selectedChannel].r);
   if (g) g.value = String(chanColors[selectedChannel].g);
   if (b) b.value = String(chanColors[selectedChannel].b);
+  if (c) c.value = rgbToHex(chanColors[selectedChannel].r, chanColors[selectedChannel].g, chanColors[selectedChannel].b);
+  if (pan) pan.value = String(chanMover[selectedChannel].pan);
+  if (tilt) tilt.value = String(chanMover[selectedChannel].tilt);
+  if (gobo) gobo.value = String(chanMover[selectedChannel].gobo);
+  if (moverColor) moverColor.value = chanMover[selectedChannel].color || '#ffffff';
   onSelectedProfileChange();
   buildChannelConfigList();
+  refreshChannelPage();
 }
 
 function onSelectedProfileChange() {
   const type = document.getElementById('cfgSelType')?.value || 'spot';
-  const wrap = document.getElementById('cfgRgbWrap');
-  if (wrap) wrap.style.display = type === 'wash' ? 'block' : 'none';
+  const rgbWrap = document.getElementById('cfgRgbWrap');
+  const moverWrap = document.getElementById('cfgMoverWrap');
+  if (rgbWrap) rgbWrap.style.display = type === 'rgb' ? 'block' : 'none';
+  if (moverWrap) moverWrap.style.display = type === 'mover' ? 'block' : 'none';
 }
 
 function saveSelectedChannelConfig() {
-  const label = document.getElementById('cfgSelLabel')?.value || '';
-  const type = document.getElementById('cfgSelType')?.value || 'spot';
-  const intens = parseInt(document.getElementById('cfgSelIntens')?.value) || 0;
-  const r = parseInt(document.getElementById('cfgSelR')?.value) || 0;
-  const g = parseInt(document.getElementById('cfgSelG')?.value) || 0;
-  const b = parseInt(document.getElementById('cfgSelB')?.value) || 0;
+  const editorActive = !!document.getElementById('page-channel-editor')?.classList.contains('active');
+  const label = editorActive ? (document.getElementById('cpLabel')?.value || '') : (document.getElementById('cfgSelLabel')?.value || '');
+  const type = editorActive ? (document.getElementById('cpType')?.value || 'spot') : (document.getElementById('cfgSelType')?.value || 'spot');
+  const intens = editorActive ? (parseInt(document.getElementById('cpIntFader')?.value) || parseInt(document.getElementById('cfgSelIntens')?.value) || 0) : (parseInt(document.getElementById('cfgSelIntens')?.value) || 0);
+  const r = editorActive ? (parseInt(document.getElementById('cpR')?.value) || 0) : (parseInt(document.getElementById('cfgSelR')?.value) || 0);
+  const g = editorActive ? (parseInt(document.getElementById('cpG')?.value) || 0) : (parseInt(document.getElementById('cfgSelG')?.value) || 0);
+  const b = editorActive ? (parseInt(document.getElementById('cpB')?.value) || 0) : (parseInt(document.getElementById('cfgSelB')?.value) || 0);
+  const colorHex = editorActive ? (document.getElementById('cpColorPicker')?.value || rgbToHex(r,g,b)) : (document.getElementById('cfgSelColor')?.value || rgbToHex(r,g,b));
+  const pan = editorActive ? (parseInt(document.getElementById('cpPan')?.value) || 50) : (parseInt(document.getElementById('cfgSelPan')?.value) || 50);
+  const tilt = editorActive ? (parseInt(document.getElementById('cpTilt')?.value) || 50) : (parseInt(document.getElementById('cfgSelTilt')?.value) || 50);
+  const gobo = editorActive ? (parseInt(document.getElementById('cpGobo')?.value) || 0) : (parseInt(document.getElementById('cfgSelGobo')?.value) || 0);
+  const moverColor = editorActive ? (document.getElementById('cpMoverColor')?.value || '#ffffff') : (document.getElementById('cfgSelMoverColor')?.value || '#ffffff');
   chanLabels[selectedChannel] = label.trim();
   chanProfiles[selectedChannel] = type;
-  chanColors[selectedChannel] = { r: Math.max(0,Math.min(100,r)), g: Math.max(0,Math.min(100,g)), b: Math.max(0,Math.min(100,b)) };
+  const rgb = hexToRgbPct(colorHex);
+  chanColors[selectedChannel] = { r: Math.max(0,Math.min(100,Number.isNaN(r) ? rgb.r : r)), g: Math.max(0,Math.min(100,Number.isNaN(g) ? rgb.g : g)), b: Math.max(0,Math.min(100,Number.isNaN(b) ? rgb.b : b)) };
+  chanMover[selectedChannel] = {
+    pan: Math.max(0,Math.min(100,pan)),
+    tilt: Math.max(0,Math.min(100,tilt)),
+    gobo: Math.max(0,Math.min(50,gobo)),
+    color: moverColor
+  };
   setChannelValue(selectedChannel, intens, { send:false });
+  const cfgLabel = document.getElementById('cfgSelLabel'); if (cfgLabel) cfgLabel.value = chanLabels[selectedChannel];
+  const cfgType = document.getElementById('cfgSelType'); if (cfgType) cfgType.value = chanProfiles[selectedChannel];
+  const cfgInt = document.getElementById('cfgSelIntens'); if (cfgInt) cfgInt.value = String(chanVals[selectedChannel]);
   buildFaders();
-  buildChannelPages();
+  refreshChannelPage();
   buildChannelConfigList();
   queueSaveState();
 }
@@ -1642,11 +1803,21 @@ function sendSelectedChannelNow() {
   saveSelectedChannelConfig();
   const ch = selectedChannel + 1;
   sendOSC(`/eos/chan/${ch}/param/intens`, +(getEffectiveChannelValue(selectedChannel)/100).toFixed(3));
-  if (chanProfiles[selectedChannel] === 'wash') {
+  if (chanProfiles[selectedChannel] === 'rgb') {
     const c = chanColors[selectedChannel];
     sendOSC(`/eos/chan/${ch}/param/color/r`, +(c.r/100).toFixed(3));
     sendOSC(`/eos/chan/${ch}/param/color/g`, +(c.g/100).toFixed(3));
     sendOSC(`/eos/chan/${ch}/param/color/b`, +(c.b/100).toFixed(3));
+  }
+  if (chanProfiles[selectedChannel] === 'mover') {
+    const m = chanMover[selectedChannel];
+    sendOSC(`/eos/chan/${ch}/param/pan`, +(m.pan/100).toFixed(3));
+    sendOSC(`/eos/chan/${ch}/param/tilt`, +(m.tilt/100).toFixed(3));
+    sendOSC(`/eos/chan/${ch}/param/gobo`, m.gobo);
+    const rgb = hexToRgbPct(m.color);
+    sendOSC(`/eos/chan/${ch}/param/color/r`, +(rgb.r/100).toFixed(3));
+    sendOSC(`/eos/chan/${ch}/param/color/g`, +(rgb.g/100).toFixed(3));
+    sendOSC(`/eos/chan/${ch}/param/color/b`, +(rgb.b/100).toFixed(3));
   }
 }
 
@@ -1659,14 +1830,15 @@ function applyChannelLayoutPreset() {
       chanProfiles[i] = 'spot';
       if (!chanLabels[i]) chanLabels[i] = `Spot ${i+1}`;
     } else if (i < spotCount + washCount) {
-      chanProfiles[i] = 'wash';
+      chanProfiles[i] = 'rgb';
       if (!chanLabels[i]) chanLabels[i] = `Wash ${i-spotCount+1}`;
     } else {
-      chanProfiles[i] = 'spot';
+      chanProfiles[i] = 'mover';
+      if (!chanLabels[i]) chanLabels[i] = `Mover ${i-spotCount-washCount+1}`;
     }
   }
   buildFaders();
-  buildChannelPages();
+  refreshChannelPage();
   buildChannelConfigList();
   selectConfigChannel(selectedChannel);
   queueSaveState();
@@ -1713,7 +1885,7 @@ function initApp() {
   loadStateCookie();
   buildCueNums();
   buildFaders();
-  buildChannelPages();
+  refreshChannelPage();
   buildChannelConfigList();
   selectConfigChannel(selectedChannel);
   setupGMFader();
